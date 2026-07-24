@@ -1,0 +1,37 @@
+Necesito integrar un servicio de IA local (Ollama) a LemWriter para extracción de referencias bíblicas y clasificación de recursos. Tengo 4 archivos de referencia ya escritos que debes ADAPTAR a la estructura real del proyecto, no copiar literalmente.
+
+ARCHIVOS DE REFERENCIA (te los voy a pegar o adjuntar):
+1. aiService.js — servicio que habla con la API de Ollama (http://localhost:11434/v1/chat/completions), con funciones checkOllamaStatus(), extractReferences(texto) y classifyResource(descripcion)
+2. main-ipc-handlers-ai.js — fragmento con 3 handlers ipcMain.handle() a integrar
+3. preload-ai-namespace.js — fragmento con el namespace "ai" a exponer vía contextBridge
+4. DetectarReferenciasButton.jsx — componente React de ejemplo para la toolbar del editor Tiptap
+
+PASOS EXACTOS QUE DEBES SEGUIR:
+
+1. PRIMERO, explora la estructura real del proyecto antes de tocar nada:
+   - Lee electron/main.js completo y muéstrame dónde están los ipcMain.handle() existentes
+   - Lee electron/preload.js completo y muéstrame el patrón exacto de contextBridge.exposeInMainWorld() que ya se usa (nombre del objeto expuesto, cómo se organizan los namespaces)
+   - Lista la estructura de src/components/ para saber dónde va el componente React
+   - Confirma si existe carpeta electron/services/, créala solo si no existe
+
+2. Copia aiService.js a electron/services/aiService.js SIN modificar su lógica interna, solo ajustando el path de require si es necesario.
+
+3. Integra los 3 handlers de main-ipc-handlers-ai.js dentro de electron/main.js, en la misma zona donde están los demás ipcMain.handle() existentes. NO reemplaces ni borres ningún handler existente.
+
+4. Integra el namespace "ai" de preload-ai-namespace.js dentro de electron/preload.js, siguiendo EXACTAMENTE el mismo patrón de nombres que ya usa el proyecto (si el objeto expuesto no se llama "electronAPI", ajusta el nombre para que coincida).
+
+5. Adapta DetectarReferenciasButton.jsx a la ubicación y convenciones reales de los componentes de la toolbar del editor (revisa cómo están estructurados los demás botones de Editor.jsx antes de integrarlo).
+
+6. Crea una migración SQL para una tabla nueva `detected_references` con columnas: id, project_id, libro, capitulo, versiculo, versiculo_final (nullable), posicion_en_texto, created_at. Sigue el patrón de migraciones que ya usa el proyecto para las tablas `resources` y `project_resources`.
+
+RESTRICCIONES IMPORTANTES:
+- No instales ninguna dependencia npm nueva — aiService.js usa fetch nativo de Node, no necesita node-fetch ni axios
+- No toques la lógica de negocio existente de proyectos, secciones, o exportación
+- No asumas que Ollama está corriendo — todo el código de IA debe fallar de forma controlada (mensaje claro al usuario) si Ollama no responde, nunca debe crashear la app
+
+VERIFICACIÓN OBLIGATORIA AL TERMINAR (no reportes "listo" sin esto):
+- Muéstrame el diff exacto de cada archivo modificado (main.js, preload.js)
+- Confirma con grep que los 3 nuevos ipcMain.handle() existen en main.js
+- Confirma que el componente compila sin errores (npm run build o el comando de build que uses)
+- Ejecuta la migración SQL contra la base de datos de desarrollo y confirma con sqlite3 que la tabla detected_references existe con el schema correcto
+- NO me digas "todo funciona" sin haber corrido estas verificaciones y mostrarme la salida real de cada comando
