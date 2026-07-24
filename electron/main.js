@@ -8,6 +8,7 @@ const mammoth = require("mammoth");
 const { marked } = require("marked");
 const { listModels, chat, generate } = require("./ollama.js");
 const aiService = require("./services/aiService.js");
+const bibleService = require("./bible-database.js");
 
 let mainWindow = null;
 let isClosing = false;
@@ -385,6 +386,10 @@ ipcMain.handle("ai:query-model", async (event, { prompt, options }) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+});
+
+ipcMain.handle("bible:getVerse", async (event, params) => {
+  return bibleService.buscarVersiculo(params);
 });
 
 ipcMain.handle("ai:extract-references", async (event, { text, projectId, options }) => {

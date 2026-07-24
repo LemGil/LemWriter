@@ -7,6 +7,7 @@
 - BD: better-sqlite3 (SQLite, vía IPC)
 - Exportación: PDF (Chromium nativo), DOCX (librería `docx`), EPUB (yazl)
 - IA local: Ollama (endpoint `/api/chat`), modelo por defecto `ibm/granite4:3b`, fast fallback `lfm2.5-1.2b`
+- **Biblia offline**: RV1909 (Reina-Valera 1909) en SQLite independiente (`bible-rv1909.db`)
 
 ## Arquitectura de IA local (Ollama)
 
@@ -38,6 +39,45 @@
 | `ai:extract-references` | `aiService.extractReferences(texto, options)` + INSERT en `detected_references` | `DetectarReferenciasButton` |
 | `ai:classify-resource` | `aiService.classifyResource(descripcion, options)` | Futuro: clasif. recursos |
 | `ai:confirm-reference` | `db:UPDATE detected_references SET confirmado_por_usuario=1` (con fallback INSERT) | `DetectarReferenciasButton` |
+| `bible:getVerse` | `bibleService.buscarVersiculo({ libro, capitulo, versiculo, versiculoFinal })` | Citas bíblicas desde UI |
+
+## Base de datos bíblica offline (RV1909)
+
+**Archivo**: `electron/bible-database.js` — servicio de solo lectura que abre `bible-rv1909.db` desde `app.getPath("userData")`.
+
+**Esquema SQLite** (importado desde `electron/bible-data/rv1909-data.sql`):
+
+```sql
+CREATE TABLE books (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    modern_name TEXT NOT NULL,
+    new_testament INTEGER NOT NULL
+);
+
+CREATE TABLE verses (
+    book_id INTEGER NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (book_id, chapter, verse),
+    FOREIGN KEY (book_id) REFERENCES books (id)
+);
+```
+
+**API**:
+- `buscarVersiculo({ libro, capitulo, versiculo, versiculoFinal })` → string con texto unido por espacios, o `null` si no existe el libro.
+- Búsqueda case-insensitive vía `COLLATE NOCASE` en `modern_name`.
+- `versiculoFinal` opcional: si se omite, busca un solo versículo; si se incluye, devuelve el rango completo.
+
+**IPC**: `bible:getVerse` expuesto como `window.api.bible.getVerse(params)`.
+
+**Verificada** con consultas reales vía `sqlite3` CLI:
+- Romanos 1:2 → "Que Él había antes prometido por sus profetas en las santas Escrituras,"
+- Mateo 5:1-12 → 12 versículos completos (Bienaventuranzas)
+- Libro inexistente → `null` (sin error)
+
+**Origen de datos**: ~50k versículos de Reina-Valera 1909, importados desde `electron/bible-data/rv1909-data.sql`.
 
 ### Flujo de confirmación de referencias
 
@@ -151,9 +191,11 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 2. **Toolbar contextual** — Botones específicos para sermon/video
 3. **Testing** — No hay suite de tests configurada
 4. **Mejorar aspecto de paneles colapsados** — Mostrar iconos pequeños dentro de sidebars/paneles cuando están colapsados, en lugar de solo espacio vacío
-5. **Conectar AI service a la UI** — ✅ `ai:confirm-reference` handler implementado y expuesto en preload. `DetectarReferenciasButton.jsx` es el componente frontend (aún por integrar en Editor.jsx).
+5. ~~**Conectar AI service a la UI** — ✅ `ai:confirm-reference` handler implementado y expuesto en preload. `DetectarReferenciasButton.jsx` integrado en Toolbar.jsx.~~
 6. **OllamaChat: indicador de carga con tiempo transcurrido** — El spinner no muestra cuánto lleva esperando (crítico en CPU lento porque 30s+ de espera sin feedback parece colgado).
-7. **DetectarReferenciasButton.jsx** — Integrar en la toolbar del editor (Tiptap). El componente existe pero no está montado en Editor.jsx.
+7. ~~**DetectarReferenciasButton.jsx** — Integrado en la toolbar del editor (Toolbar.jsx).~~
+8. **UI de búsqueda bíblica** — Componente para buscar versículos desde el editor (modal o panel lateral) usando `window.api.bible.getVerse()`.
+9. **Integrar búsqueda bíblica en asistente IA** — Que OllamaChat pueda citar versículos automáticamente desde la BD offline.
 
 ## Detalle completo
 Ver `.opencode/skills/lemwriter/SKILL.md` para contexto completo del proyecto.

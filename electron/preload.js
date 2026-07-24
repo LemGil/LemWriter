@@ -42,5 +42,8 @@ contextBridge.exposeInMainWorld('api', {
     extractReferences: (params) => ipcRenderer.invoke('ai:extract-references', params),
     classifyResource: (params) => ipcRenderer.invoke('ai:classify-resource', params),
     confirmReference: (params) => ipcRenderer.invoke('ai:confirm-reference', params),
+  },
+  bible: {
+    getVerse: (params) => ipcRenderer.invoke('bible:getVerse', params),
   }
 })

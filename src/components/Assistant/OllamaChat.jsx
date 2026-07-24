@@ -21,6 +21,57 @@ const QUICK_PROMPTS = [
   { label: 'Explicar pasaje', prompt: 'Explícame el significado de este pasaje bíblico' },
 ]
 
+// Libros bíblicos ordenados por longitud descendente para matcheo greedy
+const BOOK_NAMES = [
+  "Cantar de los Cantares", "1 Tesalonicenses", "2 Tesalonicenses", "Apocalipsis",
+  "1 Corintios", "2 Corintios", "Eclesiastés", "Lamentaciones", "Proverbios",
+  "1 Crónicas", "2 Crónicas", "Filipenses", "Colosenses", "1 Timoteo", "2 Timoteo",
+  "1 Samuel", "2 Samuel", "1 Reyes", "2 Reyes", "1 Pedro", "2 Pedro", "1 Juan", "2 Juan", "3 Juan",
+  "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio", "Josué", "Jueces",
+  "Salmos", "Isaías", "Jeremías", "Ezequiel", "Daniel", "Oseas", "Joel", "Amós",
+  "Abdías", "Jonás", "Miqueas", "Nahúm", "Habacuc", "Sofonías", "Hageo",
+  "Zacarías", "Malaquías", "Mateo", "Marcos", "Lucas", "Juan", "Hechos",
+  "Romanos", "Gálatas", "Efesios", "Santiago", "Judas", "Rut", "Job",
+  "Tito", "Filemón", "Hebreos", "Ester", "Nehemías", "Esdras",
+]
+
+// Parsea referencias bíblicas en un texto tipo "Mateo 5:1-12" o "Romanos 8:28"
+function parseBibleReferences(text) {
+  const refs = []
+  // Escapar nombres para regex
+  for (const book of BOOK_NAMES) {
+    const escaped = book.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`${escaped}\\s+(\\d+):(\\d+)(?:-(\\d+))?`, 'gi')
+    let match
+    while ((match = regex.exec(text)) !== null) {
+      refs.push({
+        libro: book,
+        capitulo: parseInt(match[1], 10),
+        versiculo: parseInt(match[2], 10),
+        versiculoFinal: match[3] ? parseInt(match[3], 10) : null,
+      })
+    }
+  }
+  return refs
+}
+
+// Busca referencias en la BD offline y devuelve array de { referencia, texto }
+async function fetchBibleCitations(references) {
+  const citations = []
+  for (const ref of references) {
+    try {
+      const text = await window.api.bible.getVerse(ref)
+      if (text) {
+        const refStr = `${ref.libro} ${ref.capitulo}:${ref.versiculo}${ref.versiculoFinal ? '-' + ref.versiculoFinal : ''}`
+        citations.push({ referencia: refStr, texto: text })
+      }
+    } catch (e) {
+      console.warn('[OllamaChat] Error al buscar', ref, e)
+    }
+  }
+  return citations
+}
+
 const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -89,9 +140,13 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
       if (result.success) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.message }])
       } else {
+        // Mejorar mensaje de timeout
+        const isTimeout = result.error?.includes('Timeout')
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `❌ Error: ${result.error || 'No se pudo conectar con Ollama. ¿Está ejecutándose?'}`
+          content: isTimeout
+            ? `⏳ El modelo tardó demasiado en responder (timeout 5 min). El modelo en CPU es lento (~1 token/segundo).\n\nSugerencias:\n• Pregunta cosas más concretas para respuestas cortas\n• Usa "Citas bíblicas" con "Incluir contexto" activado (busca versículos sin IA)\n• Usa BibleVerseLookup (ícono 📖 en la toolbar) para citas directas`
+            : `❌ Error: ${result.error || 'No se pudo conectar con Ollama. ¿Está ejecutándose?'}`
         }])
       }
     } catch (err) {
@@ -110,7 +165,54 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
     }
   }
 
-  const handleQuickPrompt = (promptText) => {
+  const handleQuickPrompt = async (promptText, label) => {
+    // Para "Citas bíblicas", buscar referencias en el contenido actual
+    if (label === 'Citas bíblicas' && includeContext && sectionContent) {
+      setLoading(true)
+
+      // 1. Parsear referencias bíblicas del texto
+      const refs = parseBibleReferences(sectionContent)
+
+      // 2. Buscar cada referencia en la BD offline
+      let citationBlock = ''
+      if (refs.length > 0) {
+        const citations = await fetchBibleCitations(refs)
+        if (citations.length > 0) {
+          citationBlock = '\n\nCitas bíblicas encontradas en el texto del usuario:\n'
+          citationBlock += citations.map(c =>
+            `- ${c.referencia}: "${c.texto}"`
+          ).join('\n')
+        }
+      }
+
+      // 3. Mensaje visible de feedback
+      if (citationBlock) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `📖 Encontré ${refs.length} referencia(s) bíblica(s) en tu texto\n${citationBlock}`
+        }])
+      } else if (refs.length > 0) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `📖 Encontré ${refs.length} referencia(s) pero no se pudieron buscar en la BD offline (revisa que el libro esté escrito correctamente, ej. "Romanos 8:28")`
+        }])
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'No encontré referencias bíblicas en formato "Libro Capítulo:Versículo" en tu texto. Puedes escribir el prompt manualmente.'
+        }])
+      }
+
+      // 4. Preparar el prompt con las citas como contexto
+      const text = includeContext && sectionContent
+        ? `${promptText}:\n"""\n${sectionContent}\n"""${citationBlock}`
+        : promptText
+      setInput(text)
+      inputRef.current?.focus()
+      setLoading(false)
+      return
+    }
+
     const text = includeContext && sectionContent
       ? `${promptText}:\n"""\n${sectionContent}\n"""`
       : promptText
@@ -194,7 +296,7 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
               {QUICK_PROMPTS.map((q, i) => (
                 <button
                   key={i}
-                  onClick={() => handleQuickPrompt(q.prompt)}
+                  onClick={() => handleQuickPrompt(q.prompt, q.label)}
                   className="text-[11px] px-2.5 py-1 rounded-full border theme-border theme-text-muted hover:theme-bg-secondary hover:theme-text transition-colors"
                 >
                   {q.label}

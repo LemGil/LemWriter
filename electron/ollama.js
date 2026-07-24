@@ -24,9 +24,9 @@ function request(method, path, body) {
         }
       })
     })
-    req.setTimeout(120000, () => {
+    req.setTimeout(300000, () => {
       req.destroy();
-      reject(new Error('Timeout de conexión con Ollama (120s)'));
+      reject(new Error('Timeout de conexión con Ollama (300s)'));
     });
     req.on('error', reject)
     if (body) req.write(JSON.stringify(body))
@@ -60,7 +60,7 @@ async function chat(model, messages, options = {}) {
         temperature: options.temperature ?? 0.7,
         top_p: options.top_p ?? 0.9,
         num_ctx: 2048,
-        num_predict: 800,
+        num_predict: 200,
         ...options
       }
     })
@@ -86,7 +86,7 @@ async function generate(model, prompt, options = {}) {
         temperature: options.temperature ?? 0.7,
         top_p: options.top_p ?? 0.9,
         num_ctx: 2048,
-        num_predict: 800,
+        num_predict: 200,
         ...options
       }
     })

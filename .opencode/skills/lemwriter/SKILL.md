@@ -119,6 +119,45 @@ Además, al agregar un recurso desde cualquier panel, también se guarda en la t
 | `ai:extract-references` | `aiService.extractReferences(texto, options)` + INSERT en `detected_references` | `DetectarReferenciasButton` |
 | `ai:classify-resource` | `aiService.classifyResource(descripcion, options)` | Futuro: clasif. recursos |
 | `ai:confirm-reference` | `db:UPDATE detected_references SET confirmado_por_usuario=1` (con fallback INSERT) | `DetectarReferenciasButton` |
+| `bible:getVerse` | `bibleService.buscarVersiculo({ libro, capitulo, versiculo, versiculoFinal })` | Citas bíblicas desde UI |
+
+## Base de datos bíblica offline (RV1909)
+
+**Archivo**: `electron/bible-database.js` — servicio de solo lectura que abre `bible-rv1909.db` desde `app.getPath("userData")`.
+
+**Esquema SQLite** (importado desde `electron/bible-data/rv1909-data.sql`):
+
+```sql
+CREATE TABLE books (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    modern_name TEXT NOT NULL,
+    new_testament INTEGER NOT NULL
+);
+
+CREATE TABLE verses (
+    book_id INTEGER NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (book_id, chapter, verse),
+    FOREIGN KEY (book_id) REFERENCES books (id)
+);
+```
+
+**API**:
+- `buscarVersiculo({ libro, capitulo, versiculo, versiculoFinal })` → string con texto unido por espacios, o `null` si no existe el libro.
+- Búsqueda case-insensitive vía `COLLATE NOCASE` en `modern_name`.
+- `versiculoFinal` opcional: si se omite, busca un solo versículo; si se incluye, devuelve el rango completo.
+
+**IPC**: `bible:getVerse` expuesto como `window.api.bible.getVerse(params)`.
+
+**Verificada** con consultas reales vía `sqlite3` CLI:
+- Romanos 1:2 → "Que Él había antes prometido por sus profetas en las santas Escrituras,"
+- Mateo 5:1-12 → 12 versículos completos (Bienaventuranzas)
+- Libro inexistente → `null` (sin error)
+
+**Origen de datos**: ~50k versículos de Reina-Valera 1909, importados desde `electron/bible-data/rv1909-data.sql`.
 
 ### Flujo de confirmación de referencias
 
@@ -215,6 +254,7 @@ Ambos deben mantenerse sincronizados. Si se agrega entrada a `STYLES_BY_TYPE` si
 | `electron/export.js` | Lógica PDF/DOCX/EPUB |
 | `electron/ollama.js` | Chat IA interactivo (OllamaChat) |
 | `electron/services/aiService.js` | Servicio IA automático (extractReferences, classifyResource) |
+| `electron/bible-database.js` | Servicio de consulta bíblica offline (RV1909, solo lectura) |
 | `src/App.jsx` | Estado global, orquestación, isChatOpen |
 | `src/services/projectService.js` | CRUD central (~30 métodos) |
 | `src/services/exportAppendixService.js` | Apéndices de exportación |

@@ -1,5 +1,6 @@
 import React from 'react'
 import DetectarReferenciasButton from '../Editor/DetectarReferenciasButton'
+import BibleVerseLookup from '../Editor/BibleVerseLookup'
 
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -243,6 +244,8 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       </ToolbarButton>
 
       <DetectarReferenciasButton editor={editor} projectId={projectId} />
+
+      <BibleVerseLookup editor={editor} />
 
       {(projectType === 'sermon') && (
         <>

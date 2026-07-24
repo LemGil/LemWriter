@@ -57,8 +57,14 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const autoSaveTimer = useRef(null);
 
+  // Reset editor reference when project or section changes
+  useEffect(() => {
+    editorRef.current = null;
+    setEditorInstance(null);
+  }, [projectId, activeSection]);
+
   const getSectionContent = useCallback(() => {
-    if (editorRef.current) {
+    if (editorRef.current && !editorRef.current.isDestroyed && editorRef.current.schema) {
       return editorRef.current.getText()?.slice(0, 3000) || ''
     }
     const activeSec = sections.find(s => s.id === activeSection)
