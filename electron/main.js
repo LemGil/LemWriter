@@ -10,6 +10,7 @@ const { listModels, chat, generate } = require("./ollama.js");
 const aiService = require("./services/aiService.js");
 const windowState = require("./window-state");
 const bibleService = require("./bible-database.js");
+const logger = require("./logger");
 
 let mainWindow = null;
 let isClosing = false;
@@ -129,7 +130,7 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL("http://localhost:5173").catch((err) => {
-      console.error("Error cargando la URL de desarrollo:", err);
+      logger.error({ err }, "Error cargando la URL de desarrollo");
     });
     win.webContents.openDevTools();
   } else {
@@ -140,20 +141,21 @@ function createWindow() {
 // IPC Handlers for Database
 ipcMain.handle("db:query", async (event, sql, params = []) => {
   try {
+    logger.debug({ sql, params }, "db:query");
     return db.prepare(sql).all(params);
   } catch (error) {
-    console.error("Database query error:", error);
+    logger.error({ err: error, sql }, "Database query error");
     throw error;
   }
 });
 
 ipcMain.handle("db:execute", async (event, sql, params = []) => {
   try {
-    console.log("Executing SQL:", sql, "with params:", params);
+    logger.debug({ sql, params }, "db:execute");
     const info = db.prepare(sql).run(params);
     return { lastInsertId: Number(info.lastInsertRowid), changes: info.changes };
   } catch (error) {
-    console.error("Database execute error:", error);
+    logger.error({ err: error, sql }, "Database execute error");
     throw error;
   }
 });
@@ -163,7 +165,7 @@ ipcMain.handle("export:pdf", async (event, project, sections, style) => {
   try {
     return await exportPDF(project, sections, style);
   } catch (error) {
-    console.error("PDF export error:", error);
+    logger.error({ err: error, handler: 'export:pdf' }, "PDF export error");
     throw error;
   }
 });
@@ -172,7 +174,7 @@ ipcMain.handle("export:docx", async (event, project, sections, style) => {
   try {
     return await exportDOCX(project, sections, style);
   } catch (error) {
-    console.error("DOCX export error:", error);
+    logger.error({ err: error, handler: 'export:docx' }, "DOCX export error");
     throw error;
   }
 });
@@ -181,13 +183,14 @@ ipcMain.handle("export:epub", async (event, project, sections, style) => {
   try {
     return await exportEPUB(project, sections, style);
   } catch (error) {
-    console.error("EPUB export error:", error);
+    logger.error({ err: error, handler: 'export:epub' }, "EPUB export error");
     throw error;
   }
 });
 
 // IPC: renderer confirma que el autoguardado completó
 ipcMain.on("save-complete", () => {
+  logger.debug("save-complete — cerrando ventana");
   saveConfirmed = true;
   if (mainWindow && isClosing) {
     // Guardar estado de la ventana justo antes de cerrar
@@ -262,7 +265,7 @@ ipcMain.handle("document:convert", async (event, filePath) => {
 
     return { success: true, html, fileName, filePath, type: ext.replace(".", "") };
   } catch (error) {
-    console.error("Document convert error:", error);
+    logger.error({ err: error, handler: 'document:convert' }, "Document convert error");
     return { success: false, error: error.message };
   }
 });
@@ -280,7 +283,7 @@ ipcMain.handle("document:save", async (event, doc) => {
       .run(doc.fileName, doc.filePath, doc.fileType, content, html, (content || "").length);
     return { success: true, id: Number(info.lastInsertRowid) };
   } catch (error) {
-    console.error("Document save error:", error);
+    logger.error({ err: error, handler: 'document:save' }, "Document save error");
     return { success: false, error: error.message };
   }
 });
@@ -289,7 +292,7 @@ ipcMain.handle("document:list", async () => {
   try {
     return db.prepare(`SELECT id, file_name, file_type, word_count, opened_at FROM uploaded_documents ORDER BY opened_at DESC`).all();
   } catch (error) {
-    console.error("Document list error:", error);
+    logger.error({ err: error, handler: 'document:list' }, "Document list error");
     return [];
   }
 });
@@ -298,7 +301,7 @@ ipcMain.handle("document:get", async (event, id) => {
   try {
     return db.prepare(`SELECT * FROM uploaded_documents WHERE id = ?`).get(id) || null;
   } catch (error) {
-    console.error("Document get error:", error);
+    logger.error({ err: error, handler: 'document:get' }, "Document get error");
     return null;
   }
 });
@@ -337,7 +340,7 @@ ipcMain.handle("backup:db", async () => {
 
     return { success: true, path: backupPath, count: Math.min(backups.length, 10) };
   } catch (error) {
-    console.error("Backup error:", error);
+    logger.error({ err: error, handler: 'backup:db' }, "Backup error");
     return { success: false, error: error.message };
   }
 });
@@ -370,17 +373,19 @@ ipcMain.handle("backup:restore", async (event, backupPath) => {
     app.exit();
     return { success: true };
   } catch (error) {
-    console.error("Restore error:", error);
+    logger.error({ err: error, handler: 'backup:restore' }, "Restore error");
     return { success: false, error: error.message };
   }
 });
 
 // Ollama IPC handlers
 ipcMain.handle("ollama:list-models", async () => {
+  logger.debug("ollama:list-models");
   return await listModels();
 });
 
 ipcMain.handle("ollama:chat", async (event, { model, messages, options }) => {
+  logger.info({ model, msgCount: messages?.length }, "ollama:chat");
   return await chat(model, messages, options);
 });
 
@@ -512,6 +517,7 @@ ipcMain.handle("app:get-last-project", async () => {
 });
 
 app.whenReady().then(() => {
+  logger.info({ version: app.getVersion(), node: process.version }, "LemWriter iniciado");
   createWindow();
 
   app.on("activate", () => {
