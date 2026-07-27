@@ -17,7 +17,7 @@ const tabs = [
   { id: 'themes', label: 'Temas', icon: Lightbulb },
 ]
 
-const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => {
+const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange, collapsed }) => {
   const [activeTab, setActiveTab] = useState('references')
   const [references, setReferences] = useState([])
   const [characters, setCharacters] = useState([])
@@ -193,7 +193,7 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
   }
 
   return (
-    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="study">
+    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="study" collapsed={collapsed}>
       {(tab) => {
         switch (tab) {
           case 'references':

@@ -273,7 +273,7 @@ function App() {
             theme={store.theme}
             onThemeChange={store.setTheme}
             sidebar={
-              <Sidebar
+                <Sidebar
                 projectType={store.projectType}
                 projectId={store.projectId}
                 sections={store.sections}

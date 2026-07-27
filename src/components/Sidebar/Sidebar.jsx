@@ -6,6 +6,7 @@ import DevotionalTree from './DevotionalTree'
 import { getTemplate } from '../../templates/definitions'
 import { RESOURCE_FORMATS } from '../../config/resourceFormats'
 import { projectService } from '../../services/projectService'
+import useAppStore from '../../stores/appStore'
 
 const typeLabels = {
   libro: { label: 'Libro', color: 'text-libro', bg: 'bg-brand-teal-pale', icon: '📚' },
@@ -29,6 +30,8 @@ const typeFilterOptions = [
 ]
 
 const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSection, onAddSection, onAddSectionFromTemplate, onRenameSection, projectTitle, templateKey, onInsertResource, resourceRefreshKey }) => {
+  const collapsed = useAppStore((s) => s.isLeftCollapsed)
+  console.log('DEBUG: Sidebar - collapsed value:', collapsed);
   const [activeTab, setActiveTab] = useState('structure')
   const [resources, setResources] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -172,16 +175,17 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
         </div>
       </div>
 
-      <div className="flex border-b">
+      <div className={`flex border-b ${collapsed ? 'flex-col items-center py-2' : ''}`}>
         <button
           onClick={() => setActiveTab('structure')}
           className={`flex-1 text-xs font-semibold py-2 border-b-2 transition-colors font-sans ${
             activeTab === 'structure'
               ? 'border-brand-gold text-brand-teal'
               : 'border-transparent text-brand-ink-3 hover:text-brand-ink'
-          }`}
+          } ${collapsed ? 'p-2 border-b-0 border-r-2' : ''}`}
+          title="Estructura"
         >
-          Estructura
+          {collapsed ? <BookOpen size={16} /> : 'Estructura'}
         </button>
         <button
           onClick={() => {
@@ -192,9 +196,10 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
             activeTab === 'resources'
               ? 'border-brand-gold text-brand-teal'
               : 'border-transparent text-brand-ink-3 hover:text-brand-ink'
-          }`}
+          } ${collapsed ? 'p-2 border-b-0 border-r-2' : ''}`}
+          title="Recursos"
         >
-          Recursos
+          {collapsed ? <Search size={16} /> : 'Recursos'}
         </button>
         <button
           onClick={() => setActiveTab('progress')}
@@ -202,9 +207,10 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
             activeTab === 'progress'
               ? 'border-brand-gold text-brand-teal'
               : 'border-transparent text-brand-ink-3 hover:text-brand-ink'
-          }`}
+          } ${collapsed ? 'p-2 border-b-0 border-r-2' : ''}`}
+          title="Progreso"
         >
-          Progreso
+          {collapsed ? <Check size={16} /> : 'Progreso'}
         </button>
       </div>
 

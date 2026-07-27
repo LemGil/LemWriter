@@ -16,7 +16,7 @@ const tabs = [
   { id: 'style', label: 'Estilo', icon: Palette },
 ]
 
-const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleChange, onResourceChange }) => {
+const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleChange, onResourceChange, collapsed }) => {
   const [activeTab, setActiveTab] = useState('references')
   const [references, setReferences] = useState([])
   const [characters, setCharacters] = useState([])
@@ -109,7 +109,7 @@ const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleCha
   }
 
   return (
-    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="libro">
+    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="libro" collapsed={collapsed}>
       {(tab) => {
         switch (tab) {
           case 'references':

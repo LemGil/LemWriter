@@ -24,33 +24,59 @@ const ACCENT_MAP = {
   study:    { active: 'border-brand-gold text-brand-teal',       inactive: 'border-transparent text-brand-ink-3 hover:text-brand-ink' },
 };
 
-function BasePanel({ tabs, activeTab, onTabChange, accent = 'brand', children }) {
+function BasePanel({ tabs, activeTab, onTabChange, accent = 'brand', children, collapsed }) {
+  console.log('BasePanel collapsed:', collapsed);
   const colors = ACCENT_MAP[accent] || ACCENT_MAP.brand;
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex border-b">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] font-medium border-b-2 transition-colors min-w-[40px] ${
-                activeTab === tab.id ? colors.active : colors.inactive
-              }`}
-              title={tab.label}
-            >
-              <Icon size={14} />
-              <span className="mt-0.5 leading-tight truncate max-w-full">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {collapsed ? (
+        /* Vertical icon strip when collapsed */
+        <div className="flex flex-col items-center py-2 gap-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`p-2 rounded-lg transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-brand-gold-pale/60 ' + colors.active.split(' ')[1]
+                    : 'theme-text-muted hover:theme-bg-secondary'
+                }`}
+                title={tab.label}
+              >
+                <Icon size={18} />
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <div className="flex border-b">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] font-medium border-b-2 transition-colors min-w-[40px] ${
+                    activeTab === tab.id ? colors.active : colors.inactive
+                  }`}
+                  title={tab.label}
+                >
+                  <Icon size={14} />
+                  <span className="mt-0.5 leading-tight truncate max-w-full">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar p-3">
-        {typeof children === 'function' ? children(activeTab) : children}
-      </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar p-3">
+            {typeof children === 'function' ? children(activeTab) : children}
+          </div>
+        </>
+      )}
     </div>
   );
 }
