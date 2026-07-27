@@ -4,7 +4,7 @@ require("./database.js");
 const db = require("./database.js");
 const { setMainWindow } = require("./export.js");
 const { exportPDF, exportDOCX, exportEPUB } = require("./export.js");
-const { listModels, chat, generate } = require("./ollama.js");
+const { listModels, chat, generate, chatStream } = require("./ollama.js");
 const aiService = require("./services/aiService.js");
 const windowState = require("./window-state");
 const bibleService = require("./bible-database.js");
@@ -153,7 +153,7 @@ ipcDocuments.register(ipcMain, db);
 ipcBackup.register(ipcMain, db);
 ipcBible.register(ipcMain, bibleService);
 ipcAi.register(ipcMain, aiService, db);
-ipcOllama.register(ipcMain, { listModels, chat, generate });
+ipcOllama.register(ipcMain, { listModels, chat, generate, chatStream });
 ipcApp.register(ipcMain, { mainWindowGetter: () => mainWindow, isClosingGetter: () => isClosing, setSaveConfirmed: (v) => { saveConfirmed = v; }, setIsClosing: (v) => { isClosing = v; }, windowState });
 
 logger.info("Registered IPC modules");
