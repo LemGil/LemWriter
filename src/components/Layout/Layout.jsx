@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Pencil, FileDown, HardDrive, ChevronLeft, ChevronRight } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { backupService } from '../../services/backupService'
+import useAppStore from '../../stores/appStore'
 
 const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount, charCount, projectType, onSave, onRename, onExport, theme, onThemeChange }) => {
   const readingTime = Math.max(1, Math.ceil(wordCount / 200))
@@ -10,11 +11,16 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
   const [editValue, setEditValue] = useState(title)
   const [backupStatus, setBackupStatus] = useState('')
   const inputRef = useRef(null)
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
-  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
-
-  const toggleLeft = () => setIsLeftCollapsed(!isLeftCollapsed)
-  const toggleRight = () => setIsRightCollapsed(!isRightCollapsed)
+  const isLeftCollapsed = useAppStore((s) => s.isLeftCollapsed)
+  const isRightCollapsed = useAppStore((s) => s.isRightCollapsed)
+  const toggleLeft = () => {
+    console.log('Layout: toggleLeft clicked');
+    useAppStore.getState().toggleLeftPanel();
+  };
+  const toggleRight = () => {
+    console.log('Layout: toggleRight clicked');
+    useAppStore.getState().toggleRightPanel();
+  };
 
   useEffect(() => {
     setEditValue(title)

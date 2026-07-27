@@ -12,42 +12,42 @@ const projectTypes = [
     title: 'Libro',
     description: 'Obra completa para publicación',
     icon: BookOpen,
-    bg: 'bg-gradient-to-br from-[#1A3A4A] to-[#2A5A6A]',
+    bg: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',
   },
   {
     id: 'teaching',
     title: 'Enseñanza',
     description: 'Clase o serie bíblica',
     icon: GraduationCap,
-    bg: 'bg-gradient-to-br from-[#C9A24A] to-[#D4B76A]',
+    bg: 'bg-gradient-to-br from-brand-gold-deep to-brand-gold',
   },
   {
     id: 'devotional',
     title: 'Devocional',
     description: 'Reflexión diaria',
     icon: Heart,
-    bg: 'bg-gradient-to-br from-[#5A9A6A] to-[#7ABA8A]',
+    bg: 'bg-gradient-to-br from-devocional/90 to-devocional/60',
   },
   {
     id: 'estudio',
     title: 'Estudio',
     description: 'Análisis de pasajes',
     icon: Search,
-    bg: 'bg-gradient-to-br from-[#5A4A3A] to-[#7A6A5A]',
+    bg: 'bg-gradient-to-br from-brand-ink-2 to-brand-ink',
   },
   {
     id: 'sermon',
     title: 'Sermón',
     description: 'Guión de predicación',
     icon: Mic,
-    bg: 'bg-gradient-to-br from-[#7A3A4A] to-[#9A5A6A]',
+    bg: 'bg-gradient-to-br from-brand-gold-deep/80 to-brand-gold-deep',
   },
   {
     id: 'video',
     title: 'Video',
-    description: 'Guión paraYouTube',
+    description: 'Guión para YouTube',
     icon: Video,
-    bg: 'bg-gradient-to-br from-[#4A4A7A] to-[#6A6A9A]',
+    bg: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',
   },
 ]
 
@@ -128,14 +128,14 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
 
   const getTypeColor = (type) => {
     const colors = {
-      book: 'bg-gradient-to-br from-[#1A3A4A] to-[#2A5A6A]',
-      teaching: 'bg-gradient-to-br from-[#C9A24A] to-[#D4B76A]',
-      devotional: 'bg-gradient-to-br from-[#5A9A6A] to-[#7ABA8A]',
-      estudio: 'bg-gradient-to-br from-[#5A4A3A] to-[#7A6A5A]',
-      sermon: 'bg-gradient-to-br from-[#7A3A4A] to-[#9A5A6A]',
-      video: 'bg-gradient-to-br from-[#4A4A7A] to-[#6A6A9A]',
+      book: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',
+      teaching: 'bg-gradient-to-br from-brand-gold-deep to-brand-gold',
+      devotional: 'bg-gradient-to-br from-devocional/90 to-devocional/60',
+      estudio: 'bg-gradient-to-br from-brand-ink-2 to-brand-ink',
+      sermon: 'bg-gradient-to-br from-brand-gold-deep/80 to-brand-gold-deep',
+      video: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',
     }
-    return colors[normalizeTypeId(type)] || 'bg-gradient-to-br from-gray-500 to-gray-600'
+    return colors[normalizeTypeId(type)] || 'bg-gradient-to-br from-brand-ink-3 to-brand-ink-2'
   }
 
   const formatDate = (dateStr) => {
@@ -154,7 +154,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
+    <div className="h-full flex flex-col theme-bg overflow-hidden">
       <main className="flex-1 overflow-y-auto no-scrollbar theme-bg-secondary">
         <div className="max-w-6xl mx-auto px-6 py-6">
 
@@ -182,7 +182,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
             </div>
 
             {globalResults && (
-              <div className="mt-2 bg-white rounded-xl border border-brand-gold/20 shadow-lg overflow-hidden divide-y divide-brand-gold/10 max-h-80 overflow-y-auto">
+              <div className="mt-2 theme-card rounded-xl border border-brand-gold/20 shadow-lg overflow-hidden divide-y divide-brand-gold/10 max-h-80 overflow-y-auto">
                 {globalResults.projects.length > 0 && (
                   <div className="p-3">
                     <p className="text-[10px] font-semibold text-brand-gold-deep uppercase tracking-wide mb-1 font-sans">Proyectos</p>
@@ -227,27 +227,27 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
 
           {/* ═══════ STATS ═══════ */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-5">
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{stats.totalProjects}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Proyectos</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{stats.totalWords.toLocaleString()}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Palabras</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{stats.totalSections}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Secciones</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{stats.wordsToday.toLocaleString()}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Palabras hoy</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{docCount}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Documentos</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{resourceCount}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Recursos</p>
             </div>
@@ -270,7 +270,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
                   <button
                     key={item.id}
                     onClick={() => onOpenSection?.(item.project_id, item.id)}
-                    className="bg-white rounded-xl border border-brand-gold/20 p-3 hover:shadow-md transition-shadow text-left group"
+                    className="theme-card rounded-xl border border-brand-gold/20 p-3 hover:shadow-md transition-shadow text-left group"
                   >
                     <div className="flex items-start gap-2 min-w-0">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white text-xs ${getTypeColor(item.project_type)}`}>
@@ -311,7 +311,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
                 <button
                   key={type.id}
                   onClick={() => onSelectType(type.id)}
-                  className="flex items-center gap-2 p-3 rounded-xl border border-brand-gold/20 bg-white hover:border-brand-gold/40 hover:shadow-md transition-all text-left"
+                  className="flex items-center gap-2 p-3 rounded-xl border border-brand-gold/20 theme-card hover:border-brand-gold/40 hover:shadow-md transition-all text-left"
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${type.bg} text-white`}>
                     <type.icon size={15} />

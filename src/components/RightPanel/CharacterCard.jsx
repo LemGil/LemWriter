@@ -29,7 +29,7 @@ const CharacterCard = ({ characters, onAdd, onDelete }) => {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <Users size={12} className="text-brand-gold" />
-          <h4 className="text-xs font-semibold text-brand-gold uppercase font-sans">Personajes bíblicos</h4>
+          <h4 className="text-xs font-semibold text-brand-gold uppercase font-serif">Personajes bíblicos</h4>
         </div>
         <button
           onClick={() => setIsAdding(!isAdding)}

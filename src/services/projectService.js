@@ -381,6 +381,22 @@ export const projectService = {
     return result.lastInsertId;
   },
 
+  async findOrCreateResource(data) {
+    const db = getDb();
+    // Para pasajes bíblicos, deduplicar por (type, reference)
+    if (data.type === 'pasaje_biblico' && data.reference) {
+      const existing = await db.query(
+        'SELECT id FROM resources WHERE type = ? AND reference = ?',
+        [data.type, data.reference]
+      );
+      if (existing.length > 0) {
+        return existing[0].id;
+      }
+    }
+    // Para otros tipos o si no existe, crear nuevo
+    return this.createResource(data);
+  },
+
   async searchResources(query = '', type = '') {
     const db = getDb();
     let sql = `SELECT * FROM resources WHERE 1=1`;
@@ -447,7 +463,8 @@ export const projectService = {
        pr.used_in, 
        pr.added_at
        FROM resources r
-       LEFT JOIN project_resources pr ON r.id = pr.resource_id AND pr.project_id = ?
+       JOIN project_resources pr ON r.id = pr.resource_id
+       WHERE pr.project_id = ?
        ORDER BY r.title ASC`,
       [projectId],
     );

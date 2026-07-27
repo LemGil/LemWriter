@@ -57,6 +57,19 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const autoSaveTimer = useRef(null);
 
+  useEffect(() => {
+    const init = async () => {
+      const lastId = await window.api.app.getLastProject();
+      if (lastId) {
+        const project = await projectService.getProject(lastId);
+        if (project) {
+          handleOpenProject(project);
+        }
+      }
+    };
+    init();
+  }, []);
+
   // Reset editor reference when project or section changes
   useEffect(() => {
     editorRef.current = null;
@@ -251,6 +264,7 @@ function App() {
   };
 
   const handleOpenProject = async (project) => {
+    window.api.app.saveLastProject(project.id);
     setVistaActiva("editor");
     setProjectType(project.type);
     setProjectId(project.id);

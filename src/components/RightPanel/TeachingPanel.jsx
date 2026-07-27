@@ -23,7 +23,7 @@ const TeachingPanel = ({ section, project, onResourceChange }) => {
   const saveToResources = async (type, data) => {
     if (!project?.id) return
     try {
-      const id = await projectService.createResource({ type, ...data })
+      const id = await projectService.findOrCreateResource({ type, ...data })
       await projectService.addResourceToProject(project.id, id)
       onResourceChange?.()
     } catch (err) {
@@ -127,19 +127,21 @@ const TeachingPanel = ({ section, project, onResourceChange }) => {
             references={references}
             onChange={handleReferencesChange}
             color="yellow"
+            sectionContent={section?.content}
+            projectId={project?.id}
           />
         )}
 
         {activeTab === 'points' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Puntos clave</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Puntos clave</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newPoint}
                 onChange={e => setNewPoint(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addPoint()}
                 placeholder="Nuevo punto..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-yellow-300"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-yellow-300"
               />
               <button onClick={addPoint} className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 font-sans">
                 +
@@ -162,14 +164,14 @@ const TeachingPanel = ({ section, project, onResourceChange }) => {
 
         {activeTab === 'questions' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Preguntas de reflexión</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Preguntas de reflexión</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newQuestion}
                 onChange={e => setNewQuestion(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addQuestion()}
                 placeholder="Nueva pregunta..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-yellow-300"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-yellow-300"
               />
               <button onClick={addQuestion} className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 font-sans">
                 +

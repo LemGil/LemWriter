@@ -1,5 +1,4 @@
 import React from 'react'
-import DetectarReferenciasButton from '../Editor/DetectarReferenciasButton'
 import BibleVerseLookup from '../Editor/BibleVerseLookup'
 
 import {
@@ -242,8 +241,6 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       >
         <Table size={16} />
       </ToolbarButton>
-
-      <DetectarReferenciasButton editor={editor} projectId={projectId} />
 
       <BibleVerseLookup editor={editor} />
 

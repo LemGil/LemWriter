@@ -79,17 +79,27 @@ CREATE TABLE verses (
 
 **Origen de datos**: ~50k versículos de Reina-Valera 1909, importados desde `electron/bible-data/rv1909-data.sql`.
 
-### Flujo de confirmación de referencias
+### Flujo de confirmación de referencias (Actualizado)
 
-1. **Extracción**: `DetectarReferenciasButton` llama a `window.api.ai.extractReferences({ text, projectId })`.
-   - El handler IPC `ai:extract-references` invoca `aiService.extractReferences()` y **automáticamente** INSERTA cada referencia en `detected_references` con `confirmado_por_usuario=0` (sugerencia sin revisar).
-   - El frontend recibe el array de referencias y las muestra al usuario.
+1. **Extracción**: El usuario abre la pestaña "Referencias" en el panel derecho y hace clic en "Detectar con IA".
+   - `BibleReferences.jsx` llama a `window.api.ai.extractReferences({ text, projectId })`.
+   - El handler IPC `ai:extract-references` invoca `aiService.extractReferences()` y guarda en `detected_references` (confirmado_por_usuario=0).
 
-2. **Revisión**: el usuario ve cada referencia, puede editar el rango de versículos (`versiculo_final`) si el modelo no lo detectó correctamente.
+2. **Revisión y Confirmación**:
+   - El usuario ve los resultados en el panel derecho.
+   - Al hacer clic en "+", `confirmarDetectada` verifica si el pasaje ya existe en la lista (deduplicación visual).
+   - Si es nuevo, busca el texto real en la BD offline (`window.api.bible.getVerse()`) y lo agrega a la lista local.
+   - Al confirmar, el panel padre llama a `saveToResources('pasaje_biblico', ...)` que utiliza `projectService.findOrCreateResource()`.
 
-3. **Confirmación**: el usuario hace clic en "Confirmar" → llama a `window.api.ai.confirmReference({ projectId, libro, capitulo, versiculo, versiculo_final })`.
-   - El handler `ai:confirm-reference` hace `UPDATE detected_references SET confirmado_por_usuario=1`.
-   - **Fallback**: si no existe el registro (UPDATE 0 filas), hace INSERT directo con `confirmado=1`.
+3. **Recursos Canónicos**:
+   - `findOrCreateResource` busca si el pasaje ya existe en la tabla `resources` (por `type` y `reference`).
+   - Si existe, reutiliza el ID existente. Si no, crea un nuevo registro.
+   - Luego, `addResourceToProject` vincula el recurso al proyecto (usando `INSERT OR IGNORE` para evitar duplicados en `project_resources`).
+
+### Deduplicación y Recursos Canónicos
+- **UI**: `BibleReferences.jsx` previene agregar duplicados a la lista local (marca como "Ya agregado").
+- **BD**: `projectService.findOrCreateResource` asegura que cada pasaje bíblico tenga un único registro en `resources`, vinculable a múltiples proyectos sin duplicar datos.
+- **Texto**: Al confirmar, se busca automáticamente el texto del versículo en `bible-rv1909.db` para guardarlo junto a la referencia.
 
 ### Tabla `detected_references`
 

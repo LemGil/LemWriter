@@ -80,7 +80,7 @@ const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleCha
   const saveToResources = async (type, data) => {
     if (!project?.id) return
     try {
-      const id = await projectService.createResource({ type, ...data })
+      const id = await projectService.findOrCreateResource({ type, ...data })
       await projectService.addResourceToProject(project.id, id)
       onResourceChange?.()
     } catch (err) {
@@ -165,6 +165,8 @@ const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleCha
             references={references}
             onChange={handleReferencesChange}
             color="brand"
+            sectionContent={section?.content}
+            projectId={project?.id}
           />
         )}
 
@@ -185,14 +187,14 @@ const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleCha
 
         {activeTab === 'notes' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Notas del capítulo</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Notas del capítulo</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newNote}
                 onChange={e => setNewNote(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addNote()}
                 placeholder="Escribir nota..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addNote} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold">
                 +
@@ -216,7 +218,7 @@ const BookPanel = ({ section, project, projectStyle, onSectionUpdate, onStyleCha
           <div className="space-y-3">
             <div className="flex items-center gap-1.5 mb-3">
               <Palette size={12} className="text-brand-gold" />
-              <h4 className="text-xs font-semibold text-brand-gold uppercase font-sans">Estilo del Libro</h4>
+              <h4 className="text-xs font-semibold text-brand-gold uppercase font-serif">Estilo del Libro</h4>
             </div>
             <p className="text-[11px] text-brand-ink-3 mb-3 font-sans">
               Elige el formato editorial para la exportación del libro.

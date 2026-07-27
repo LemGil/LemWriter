@@ -25,7 +25,7 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
   const saveToResources = async (type, data) => {
     if (!project?.id) return
     try {
-      const id = await projectService.createResource({ type, ...data })
+      const id = await projectService.findOrCreateResource({ type, ...data })
       await projectService.addResourceToProject(project.id, id)
       onResourceChange?.()
     } catch (err) {
@@ -147,19 +147,21 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
             references={references}
             onChange={handleReferencesChange}
             color="brand"
+            sectionContent={section?.content}
+            projectId={project?.id}
           />
         )}
 
         {activeTab === 'scenes' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-sans">Escenas del video</h4>
+            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-serif">Escenas del video</h4>
             <div className="flex gap-1 mb-2">
               <input
                 value={newSceneTitle}
                 onChange={e => setNewSceneTitle(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addScene()}
                 placeholder="Título de escena..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
             </div>
             <div className="flex gap-1 mb-3">
@@ -168,7 +170,7 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
                 onChange={e => setNewSceneDuration(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addScene()}
                 placeholder="Duración (ej. 2:30)"
-                className="w-24 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="w-24 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addScene} className="text-xs bg-brand-teal text-white px-2 py-1 rounded hover:bg-brand-teal/80 font-sans">
                 + Agregar
@@ -205,7 +207,7 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
 
         {activeTab === 'notes' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-sans">Notas de producción</h4>
+            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-serif">Notas de producción</h4>
             <textarea
               value={notes}
               onChange={e => {
@@ -220,12 +222,12 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
 
         {activeTab === 'words' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-sans">Palabras clave</h4>
+            <h4 className="text-xs font-semibold text-brand-teal uppercase mb-2 font-serif">Palabras clave</h4>
             <div className="flex gap-1 mb-3">
               <select
                 value={newWordLang}
                 onChange={e => setNewWordLang(e.target.value)}
-                className="text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="text-xs border rounded-lg px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               >
                 <option value="hebreo">Hebreo</option>
                 <option value="griego">Griego</option>
@@ -235,7 +237,7 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
                 onChange={e => setNewWord(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addWord()}
                 placeholder="Palabra..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addWord} className="text-xs bg-brand-teal text-white px-2 py-1 rounded hover:bg-brand-teal/80 font-sans">
                 +

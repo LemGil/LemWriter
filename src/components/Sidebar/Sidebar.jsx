@@ -8,16 +8,16 @@ import { RESOURCE_FORMATS } from '../../config/resourceFormats'
 import { projectService } from '../../services/projectService'
 
 const typeLabels = {
-  libro: { label: 'Libro', color: 'text-libro', bg: 'bg-blue-50', icon: '📚' },
-  book: { label: 'Libro', color: 'text-libro', bg: 'bg-blue-50', icon: '📚' },
-  ensenanza: { label: 'Enseñanza', color: 'text-ensenanza', bg: 'bg-yellow-50', icon: '📖' },
-  teaching: { label: 'Enseñanza', color: 'text-ensenanza', bg: 'bg-yellow-50', icon: '📖' },
-  devocional: { label: 'Devocional', color: 'text-devocional', bg: 'bg-green-50', icon: '🙏' },
-  devotional: { label: 'Devocional', color: 'text-devocional', bg: 'bg-green-50', icon: '🙏' },
-  estudio: { label: 'Estudio Bíblico', color: 'text-amber-700', bg: 'bg-amber-50', icon: '🔍' },
-  study: { label: 'Estudio Bíblico', color: 'text-amber-700', bg: 'bg-amber-50', icon: '🔍' },
-  sermon: { label: 'Sermón', color: 'text-red-700', bg: 'bg-red-50', icon: '🎙️' },
-  video: { label: 'Video', color: 'text-indigo-700', bg: 'bg-indigo-50', icon: '🎬' },
+  libro: { label: 'Libro', color: 'text-libro', bg: 'bg-brand-teal-pale', icon: '📚' },
+  book: { label: 'Libro', color: 'text-libro', bg: 'bg-brand-teal-pale', icon: '📚' },
+  ensenanza: { label: 'Enseñanza', color: 'text-ensenanza', bg: 'bg-brand-gold-pale', icon: '📖' },
+  teaching: { label: 'Enseñanza', color: 'text-ensenanza', bg: 'bg-brand-gold-pale', icon: '📖' },
+  devocional: { label: 'Devocional', color: 'text-devocional', bg: 'bg-devocional/10', icon: '🙏' },
+  devotional: { label: 'Devocional', color: 'text-devocional', bg: 'bg-devocional/10', icon: '🙏' },
+  estudio: { label: 'Estudio Bíblico', color: 'text-brand-ink-2', bg: 'bg-brand-cream', icon: '🔍' },
+  study: { label: 'Estudio Bíblico', color: 'text-brand-ink-2', bg: 'bg-brand-cream', icon: '🔍' },
+  sermon: { label: 'Sermón', color: 'text-brand-gold', bg: 'bg-brand-gold-shine', icon: '🎙️' },
+  video: { label: 'Video', color: 'text-brand-teal-mid', bg: 'bg-brand-teal-pale', icon: '🎬' },
 }
 
 const typeFilterOptions = [
@@ -392,7 +392,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
               return (
                 <>
                   <div>
-                    <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Progreso</h4>
+                    <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Progreso</h4>
                     <div className="bg-brand-gold-pale rounded p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-brand-teal">{sectionTypeLabel}</span>
@@ -422,7 +422,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                   </div>
 
                   <div className="space-y-1">
-                    <h5 className="text-xs font-semibold text-brand-gold-deep uppercase font-sans">Detalle por {sectionTypeLabel_singular}</h5>
+                    <h5 className="text-xs font-semibold text-brand-gold-deep uppercase font-serif">Detalle por {sectionTypeLabel_singular}</h5>
                     {sections.length === 0 && (
                       <p className="text-xs text-brand-ink-3 italic font-sans">Sin secciones aún</p>
                     )}

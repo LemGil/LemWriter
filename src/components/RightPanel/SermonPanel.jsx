@@ -25,7 +25,7 @@ const SermonPanel = ({ section, project, onResourceChange }) => {
   const saveToResources = async (type, data) => {
     if (!project?.id) return
     try {
-      const id = await projectService.createResource({ type, ...data })
+      const id = await projectService.findOrCreateResource({ type, ...data })
       await projectService.addResourceToProject(project.id, id)
       onResourceChange?.()
     } catch (err) {
@@ -149,20 +149,22 @@ const SermonPanel = ({ section, project, onResourceChange }) => {
               references={references}
               onChange={handleReferencesChange}
               color="brand"
+              sectionContent={section?.content}
+              projectId={project?.id}
             />
           </div>
         )}
 
         {activeTab === 'points' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Puntos del sermón</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Puntos del sermón</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newPoint}
                 onChange={e => setNewPoint(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addPoint()}
                 placeholder="Nuevo punto..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addPoint} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold/30 font-sans">
                 +
@@ -185,14 +187,14 @@ const SermonPanel = ({ section, project, onResourceChange }) => {
 
         {activeTab === 'questions' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Preguntas de aplicación</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Preguntas de aplicación</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newQuestion}
                 onChange={e => setNewQuestion(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addQuestion()}
                 placeholder="Nueva pregunta..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addQuestion} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold/30 font-sans">
                 +
@@ -215,12 +217,12 @@ const SermonPanel = ({ section, project, onResourceChange }) => {
 
         {activeTab === 'words' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Palabras clave</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Palabras clave</h4>
             <div className="flex gap-1 mb-3">
               <select
                 value={newWordLang}
                 onChange={e => setNewWordLang(e.target.value)}
-                className="text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="text-xs border rounded-lg px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               >
                 <option value="hebreo">Hebreo</option>
                 <option value="griego">Griego</option>
@@ -230,7 +232,7 @@ const SermonPanel = ({ section, project, onResourceChange }) => {
                 onChange={e => setNewWord(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addWord()}
                 placeholder="Palabra..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addWord} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold/30 font-sans">
                 +

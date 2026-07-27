@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('before-close', callback)
     return () => ipcRenderer.off('before-close', callback)
   },
+  app: {
+    saveLastProject: (id) => ipcRenderer.invoke('app:save-last-project', id),
+    getLastProject: () => ipcRenderer.invoke('app:get-last-project'),
+  },
   confirmSaveComplete: () => ipcRenderer.send('save-complete'),
   cancelClose: () => ipcRenderer.send('save-cancelled'),
   export: {

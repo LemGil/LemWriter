@@ -2,3 +2,7 @@ node_modules/
 dist/
 build/
 *.log
+lemwriter.db
+lemwriter.backup.db
+.codegraph/
+.opencode/
