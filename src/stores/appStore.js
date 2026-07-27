@@ -224,6 +224,20 @@ const useAppStore = create((set, get) => ({
     }
   },
 
+  // ── Panel collapse state (layout sidebars) ──────────────────
+  isLeftCollapsed: false,
+  isRightCollapsed: false,
+  toggleLeftPanel() {
+    console.log('DEBUG: toggleLeftPanel ejecutado');
+    set((s) => ({ isLeftCollapsed: !s.isLeftCollapsed }));
+  },
+  toggleRightPanel() {
+    console.log('toggleRightPanel called');
+    set((s) => ({ isRightCollapsed: !s.isRightCollapsed }));
+  },
+  setLeftPanelCollapsed(v) { set({ isLeftCollapsed: v }); },
+  setRightPanelCollapsed(v) { set({ isRightCollapsed: v }); },
+
   // ── Computed helpers (not persisted, derived on read) ───────
   isProjectOpen: () => get().vistaActiva === 'editor' && !!get().projectId,
 

@@ -12,7 +12,7 @@ const tabs = [
   { id: 'words', label: 'Palabras', icon: Languages },
 ]
 
-const VideoPanel = ({ section, project, onResourceChange }) => {
+const VideoPanel = ({ section, project, onResourceChange, collapsed }) => {
   const [activeTab, setActiveTab] = useState('references')
   const [references, setReferences] = useState([])
   const [scenes, setScenes] = useState([])
@@ -97,7 +97,7 @@ const VideoPanel = ({ section, project, onResourceChange }) => {
   }
 
   return (
-    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="teal">
+    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="teal" collapsed={collapsed}>
       {(tab) => {
         switch (tab) {
           case 'references':

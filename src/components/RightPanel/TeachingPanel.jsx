@@ -13,7 +13,7 @@ const tabs = [
   { id: 'words', label: 'Palabras', icon: Languages },
 ]
 
-const TeachingPanel = ({ section, project, onResourceChange }) => {
+const TeachingPanel = ({ section, project, onResourceChange, collapsed }) => {
   const [activeTab, setActiveTab] = useState('text')
   const [references, setReferences] = useState([])
   const [points, setPoints] = useState([])
@@ -87,7 +87,7 @@ const TeachingPanel = ({ section, project, onResourceChange }) => {
   }
 
   return (
-    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="ensenanza">
+    <BasePanel tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="ensenanza" collapsed={collapsed}>
       {(tab) => {
         switch (tab) {
           case 'text':

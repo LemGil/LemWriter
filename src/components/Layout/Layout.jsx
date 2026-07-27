@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Pencil, FileDown, HardDrive, ChevronLeft, ChevronRight } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { backupService } from '../../services/backupService'
+import useAppStore from '../../stores/appStore'
 
 const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount, charCount, projectType, onSave, onRename, onExport, theme, onThemeChange }) => {
   const readingTime = Math.max(1, Math.ceil(wordCount / 200))
@@ -10,11 +11,18 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
   const [editValue, setEditValue] = useState(title)
   const [backupStatus, setBackupStatus] = useState('')
   const inputRef = useRef(null)
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
-  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
-
-  const toggleLeft = () => setIsLeftCollapsed(!isLeftCollapsed)
-  const toggleRight = () => setIsRightCollapsed(!isRightCollapsed)
+  const isLeftCollapsed = useAppStore((s) => s.isLeftCollapsed)
+  const isRightCollapsed = useAppStore((s) => s.isRightCollapsed)
+  const toggleLeft = (e) => {
+    e.stopPropagation();
+    console.log('Layout: toggleLeft clicked');
+    useAppStore.getState().toggleLeftPanel();
+  };
+  const toggleRight = (e) => {
+    e.stopPropagation();
+    console.log('Layout: toggleRight clicked');
+    useAppStore.getState().toggleRightPanel();
+  };
 
   useEffect(() => {
     setEditValue(title)
@@ -79,11 +87,12 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
     <div className="h-screen flex flex-col overflow-hidden theme-bg">
       <header className="h-14 theme-bg theme-border flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4 min-w-0">
-          <button onClick={onBack} className="p-1 theme-hover rounded shrink-0 theme-text-secondary">
+          <button onClick={onBack} className="p-1 theme-hover rounded shrink-0 theme-text-secondary" title="Volver al inicio">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
+          <span className="w-px h-5 bg-current opacity-20 shrink-0" />
           {/* Botón para colapsar/expandir sidebar izquierdo */}
-          <button onClick={toggleLeft} className="p-1 theme-hover rounded shrink-0 theme-text-secondary">
+          <button onClick={(e) => { e.stopPropagation(); console.log('Botón clicado - TOGGLE IZQ'); useAppStore.getState().toggleLeftPanel(); }} className="p-1 theme-hover rounded shrink-0 theme-text-secondary" title={isLeftCollapsed ? 'Expandir panel lateral' : 'Colapsar panel lateral'}>
             {isLeftCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
           </button>
 
@@ -116,7 +125,7 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
         <div className="flex items-center gap-2 shrink-0">
            <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
             {/* Botón para colapsar/expandir panel derecho */}
-            <button onClick={toggleRight} className="p-1 theme-hover rounded shrink-0 theme-text-secondary">
+            <button onClick={toggleRight} className="p-1 theme-hover rounded shrink-0 theme-text-secondary" title={isRightCollapsed ? 'Expandir panel derecho' : 'Colapsar panel derecho'}>
               {isRightCollapsed ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
             </button>
             <button
@@ -137,8 +146,8 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
       </header>
       
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <aside className={`shrink-0 border-r theme-border theme-bg hidden md:block overflow-y-auto no-scrollbar transition-all duration-200 ${isLeftCollapsed ? 'w-16' : 'w-64'}`}>
-          {sidebar}
+        <aside className={`shrink-0 border-r theme-border theme-bg hidden md:block overflow-y-auto no-scrollbar transition-all duration-300 ${isLeftCollapsed ? 'w-20 overflow-hidden' : 'w-64'}`}>
+          {React.cloneElement(sidebar, { collapsed: isLeftCollapsed })}
         </aside>
 
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
