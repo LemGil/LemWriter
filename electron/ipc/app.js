@@ -1,5 +1,6 @@
 // IPC handlers for app lifecycle and window state
 const logger = require('../logger');
+const { validate, SaveLastProjectSchema } = require('../schemas/ipc-schemas');
 
 function register(ipcMain, deps) {
   const { mainWindowGetter, isClosingGetter, setSaveConfirmed, setIsClosing, windowState } = deps;
@@ -28,13 +29,18 @@ function register(ipcMain, deps) {
   });
 
   ipcMain.handle('app:save-last-project', async (_event, projectId) => {
-    const state = windowState.loadState();
-    windowState.saveState({ ...state, lastProjectId: projectId });
+    try {
+      const { projectId: id } = validate(SaveLastProjectSchema, { projectId }, 'app:save-last-project');
+      const state = windowState.loadState();
+      windowState.saveState({ ...state, lastProjectId: id });
+    } catch (error) {
+      logger.warn({ err: error, handler: 'app:save-last-project' }, 'Validation failed');
+    }
   });
 
   ipcMain.handle('app:get-last-project', async () => {
     const state = windowState.loadState();
-    return state.lastProjectId;
+    return state.lastProjectId || null;
   });
 }
 

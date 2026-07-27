@@ -6,6 +6,8 @@ const { marked } = require('marked');
 const { dialog } = require('electron');
 const logger = require('../logger');
 
+const { validate, DocumentSaveSchema, DocumentIdSchema } = require('../schemas/ipc-schemas');
+
 let pdfParse = null;
 
 async function ensurePdfParse() {
@@ -34,6 +36,9 @@ function register(ipcMain, db) {
 
   ipcMain.handle('document:convert', async (_event, filePath) => {
     try {
+      if (!filePath || typeof filePath !== 'string') {
+        throw Object.assign(new Error('filePath string required'), { code: 'ZOD_VALIDATION_ERROR' });
+      }
       const ext = path.extname(filePath).toLowerCase();
       const fileName = path.basename(filePath);
       let html = '';
@@ -74,7 +79,8 @@ function register(ipcMain, db) {
 
   ipcMain.handle('document:save', async (_event, doc) => {
     try {
-      const { id, fileName, content, html } = doc;
+      const data = validate(DocumentSaveSchema, doc, 'document:save');
+      const { id, fileName, content, html } = data;
       if (id) {
         db.prepare(
           `UPDATE uploaded_documents SET file_name = ?, content = ?, html = ?, word_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
@@ -83,9 +89,10 @@ function register(ipcMain, db) {
       }
       const info = db.prepare(
         `INSERT INTO uploaded_documents (file_name, file_path, file_type, content, html, word_count) VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(doc.fileName, doc.filePath, doc.fileType, content, html, (content || '').length);
+      ).run(data.fileName, data.filePath, data.fileType, content, html, (content || '').length);
       return { success: true, id: Number(info.lastInsertRowid) };
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, handler: 'document:save' }, 'Document save error');
       return { success: false, error: error.message };
     }
@@ -104,8 +111,10 @@ function register(ipcMain, db) {
 
   ipcMain.handle('document:get', async (_event, id) => {
     try {
+      validate(DocumentIdSchema, { id }, 'document:get');
       return db.prepare(`SELECT * FROM uploaded_documents WHERE id = ?`).get(id) || null;
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, handler: 'document:get' }, 'Document get error');
       return null;
     }
@@ -113,9 +122,11 @@ function register(ipcMain, db) {
 
   ipcMain.handle('document:delete', async (_event, id) => {
     try {
+      validate(DocumentIdSchema, { id }, 'document:delete');
       db.prepare(`DELETE FROM uploaded_documents WHERE id = ?`).run(id);
       return { success: true };
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       return { success: false, error: error.message };
     }
   });

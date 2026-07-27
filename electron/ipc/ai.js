@@ -1,5 +1,6 @@
 // IPC handlers for local AI (Ollama) integration
 const logger = require('../logger');
+const { validate, AiQuerySchema, ExtractReferencesSchema, ClassifyResourceSchema, ConfirmReferenceSchema } = require('../schemas/ipc-schemas');
 
 function register(ipcMain, aiService, db) {
   ipcMain.handle('ai:check-status', async () => {
@@ -11,8 +12,9 @@ function register(ipcMain, aiService, db) {
     }
   });
 
-  ipcMain.handle('ai:query-model', async (_event, prompt, options) => {
+  ipcMain.handle('ai:query-model', async (_event, params) => {
     try {
+      const { prompt, options } = validate(AiQuerySchema, params, 'ai:query-model');
       return await aiService.queryModel(prompt, options);
     } catch (error) {
       logger.error({ err: error, handler: 'ai:query-model' }, 'AI query error');
@@ -22,7 +24,7 @@ function register(ipcMain, aiService, db) {
 
   ipcMain.handle('ai:extract-references', async (_event, params) => {
     try {
-      const { text, projectId } = params;
+      const { text, projectId } = validate(ExtractReferencesSchema, params, 'ai:extract-references');
       const references = await aiService.extractReferences(text);
       // Store detected references in DB
       for (const ref of references) {
@@ -47,8 +49,9 @@ function register(ipcMain, aiService, db) {
     }
   });
 
-  ipcMain.handle('ai:classify-resource', async (_event, description, options) => {
+  ipcMain.handle('ai:classify-resource', async (_event, params) => {
     try {
+      const { description, options } = validate(ClassifyResourceSchema, params, 'ai:classify-resource');
       return await aiService.classifyResource(description, options);
     } catch (error) {
       logger.error({ err: error, handler: 'ai:classify-resource' }, 'Classify resource error');
@@ -56,18 +59,54 @@ function register(ipcMain, aiService, db) {
     }
   });
 
-  ipcMain.handle('ai:confirm-reference', async (_event, refId) => {
+  ipcMain.handle('ai:confirm-reference', async (_event, params) => {
     try {
-      // Confirm a detected reference: mark as confirmed by user (or upsert into resources)
-      const existing = db.prepare(`SELECT * FROM detected_references WHERE id = ?`).get(refId);
-      if (!existing) {
-        // Fallback: try to find by project + libro + capitulo + versiculo
-        logger.warn({ refId }, 'Reference not found by ID — skipping confirm');
-        return { success: false, error: 'Reference not found' };
+      const validated = validate(ConfirmReferenceSchema, params, 'ai:confirm-reference');
+
+      // Support both refId and (projectId+libro+capitulo+versiculo) patterns
+      if (validated.refId) {
+        const existing = db.prepare(`SELECT * FROM detected_references WHERE id = ?`).get(validated.refId);
+        if (!existing) {
+          logger.warn({ refId: validated.refId }, 'Reference not found by ID — skipping confirm');
+          return { success: false, error: 'Reference not found' };
+        }
+        db.prepare(`UPDATE detected_references SET confirmado_por_usuario = 1 WHERE id = ?`).run(validated.refId);
+        logger.info({ refId: validated.refId, reference: `${existing.libro} ${existing.capitulo}:${existing.versiculo}` }, 'Reference confirmed');
+        return { success: true, reference: existing };
       }
-      db.prepare(`UPDATE detected_references SET confirmado_por_usuario = 1 WHERE id = ?`).run(refId);
-      logger.info({ refId, reference: `${existing.libro} ${existing.capitulo}:${existing.versiculo}` }, 'Reference confirmed');
-      return { success: true, reference: existing };
+
+      // Legacy: match by (projectId, libro, capitulo, versiculo)
+      const refStr = `${validated.libro} ${validated.capitulo}:${validated.versiculo}${validated.versiculo_final ? '-' + validated.versiculo_final : ''}`;
+      const result = db.prepare(`
+        UPDATE detected_references
+        SET confirmado_por_usuario = 1,
+            versiculo_final = COALESCE(?, versiculo_final)
+        WHERE project_id = ?
+          AND libro = ?
+          AND capitulo = ?
+          AND versiculo = ?
+      `).run(validated.versiculo_final || null, validated.projectId, validated.libro, validated.capitulo, validated.versiculo);
+
+      if (result.changes === 0) {
+        // No existing row — insert directly as confirmed
+        db.prepare(`
+          INSERT INTO detected_references
+            (project_id, libro, capitulo, versiculo, versiculo_final, confirmado_por_usuario, modelo_usado)
+          VALUES (?, ?, ?, ?, ?, 1, ?)
+        `).run(validated.projectId, validated.libro, validated.capitulo, validated.versiculo, validated.versiculo_final || null, aiService.DEFAULT_MODEL);
+      }
+
+      // Add as resource
+      const resourceResult = db.prepare(`
+        INSERT INTO resources (type, title, reference, created_at, updated_at)
+        VALUES ('pasaje_biblico', ?, ?, datetime('now'), datetime('now'))
+      `).run(refStr, refStr);
+
+      const resourceId = Number(resourceResult.lastInsertRowid);
+      db.prepare(`INSERT OR IGNORE INTO project_resources (project_id, resource_id) VALUES (?, ?)`)
+        .run(validated.projectId, resourceId);
+
+      return { success: true, resourceId };
     } catch (error) {
       logger.error({ err: error, handler: 'ai:confirm-reference' }, 'Confirm reference error');
       return { success: false, error: error.message };

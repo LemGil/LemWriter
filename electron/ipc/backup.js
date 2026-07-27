@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
 const logger = require('../logger');
+const { validate, BackupRestoreSchema } = require('../schemas/ipc-schemas');
 
 function register(ipcMain, db) {
   ipcMain.handle('backup:db', async () => {
@@ -57,14 +58,16 @@ function register(ipcMain, db) {
 
   ipcMain.handle('backup:restore', async (_event, backupPath) => {
     try {
+      const { backupPath: validatedPath } = validate(BackupRestoreSchema, { backupPath }, 'backup:restore');
       const dbPath = db.name;
       db.close();
-      fs.copyFileSync(backupPath, dbPath);
-      logger.warn({ backupPath }, 'Database restored — relaunching');
+      fs.copyFileSync(validatedPath, dbPath);
+      logger.warn({ backupPath: validatedPath }, 'Database restored — relaunching');
       app.relaunch();
       app.exit();
       return { success: true };
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, handler: 'backup:restore' }, 'Restore error');
       return { success: false, error: error.message };
     }

@@ -1,12 +1,15 @@
 // IPC handlers for database operations
 const logger = require('../logger');
+const { validate, DbQuerySchema, DbExecuteSchema } = require('../schemas/ipc-schemas');
 
 function register(ipcMain, db) {
   ipcMain.handle('db:query', async (_event, sql, params = []) => {
     try {
-      logger.debug({ sql, params }, 'db:query');
-      return db.prepare(sql).all(...params);
+      const [validatedSql, validatedParams] = validate(DbQuerySchema, [sql, params], 'db:query');
+      logger.debug({ sql: validatedSql, params: validatedParams }, 'db:query');
+      return db.prepare(validatedSql).all(...validatedParams);
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, sql }, 'Database query error');
       throw error;
     }
@@ -14,10 +17,12 @@ function register(ipcMain, db) {
 
   ipcMain.handle('db:execute', async (_event, sql, params = []) => {
     try {
-      logger.debug({ sql, params }, 'db:execute');
-      const info = db.prepare(sql).run(...params);
+      const [validatedSql, validatedParams] = validate(DbExecuteSchema, [sql, params], 'db:execute');
+      logger.debug({ sql: validatedSql, params: validatedParams }, 'db:execute');
+      const info = db.prepare(validatedSql).run(...validatedParams);
       return { lastInsertId: Number(info.lastInsertRowid), changes: info.changes };
     } catch (error) {
+      if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, sql }, 'Database execute error');
       throw error;
     }
