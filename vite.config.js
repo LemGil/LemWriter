@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   test: {
-    environment: 'jsdom',
+    environment: 'node',
     globals: true,
+    pool: 'forks',
+    exclude: ['node_modules', 'dist', 'electron'],
   },
 })

@@ -177,30 +177,89 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
         ...updatedMessages.map(m => ({ role: m.role, content: m.content }))
       ]
 
-      // DEBUG: Mostrar el prompt exacto en la consola
-      console.log('[OllamaChat] Prompt enviado al modelo:')
-      console.log('[OllamaChat] SYSTEM:', apiMessages[0].content)
+      console.log('[OllamaChat] Streaming prompt enviado:')
+      console.log('[OllamaChat] SYSTEM:', apiMessages[0].content?.slice(0, 200))
       console.log('[OllamaChat] USER:', text)
 
-      const result = await window.api.ollama.chat({ model, messages: apiMessages })
+      // Insert placeholder assistant message immediately
+      const msgId = Date.now()
+      setMessages(prev => [...prev, { role: 'assistant', content: '', _streamId: msgId }])
 
-      if (result.success) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.message }])
+      // Try streaming
+      if (window.api.ollama.chatStream && window.api.ollama.onChunk) {
+        await new Promise((resolve, reject) => {
+          let settled = false
+          const unsubscribe = window.api.ollama.onChunk((data) => {
+            if (data.error) {
+              if (!settled) { settled = true; reject(new Error(data.error)) }
+              return
+            }
+            if (data.done) {
+              if (!settled) { settled = true; resolve(data.fullContent) }
+              return
+            }
+            // Update the streaming message with accumulated content
+            setMessages(prev => prev.map(m =>
+              m._streamId === msgId ? { ...m, content: data.fullContent } : m
+            ))
+          })
+
+          // Fallback timeout
+          const timeoutId = setTimeout(() => {
+            if (!settled) {
+              unsubscribe()
+              settled = true
+              reject(new Error('Stream timeout'))
+            }
+          }, 120000)
+
+          window.api.ollama.chatStream({ model, messages: apiMessages })
+          window.api.ollama.onStreamStarted?.(() => clearTimeout(timeoutId))
+        })
       } else {
-        // Mejorar mensaje de timeout
-        const isTimeout = result.error?.includes('Timeout')
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: isTimeout
-            ? `⏳ El modelo tardó demasiado en responder (timeout 5 min). El modelo en CPU es lento (~1 token/segundo).\n\nSugerencias:\n• Pregunta cosas más concretas para respuestas cortas\n• Usa "Citas bíblicas" con "Incluir contexto" activado (busca versículos sin IA)\n• Usa BibleVerseLookup (ícono 📖 en la toolbar) para citas directas`
-            : `❌ Error: ${result.error || 'No se pudo conectar con Ollama. ¿Está ejecutándose?'}`
-        }])
+        // Fallback: request/response
+        console.log('[OllamaChat] Streaming no disponible — request/response')
+        const result = await window.api.ollama.chat({ model, messages: apiMessages })
+        if (result.success) {
+          setMessages(prev => prev.map(m =>
+            m._streamId === msgId ? { ...m, content: result.message } : m
+          ))
+        } else {
+          const isTimeout = result.error?.includes('Timeout')
+          setMessages(prev => prev.map(m =>
+            m._streamId === msgId
+              ? { ...m, content: isTimeout
+                  ? '⏳ El modelo tardó demasiado (timeout 5 min).\n\nSugerencias:\n• Pregunta cosas más concretas\n• Usa "Citas bíblicas" con "Incluir contexto" activado (busca versículos sin IA)\n• Usa BibleVerseLookup (ícono 📖 en la toolbar) para citas directas'
+                  : `❌ Error: ${result.error || 'No se pudo conectar con Ollama. ¿Está ejecutándose?'}`
+                }
+              : m
+          ))
+        }
       }
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `❌ Error de conexión: ${err.message}`
-      }])
+      // Fallback to non-streaming
+      console.warn('[OllamaChat] Streaming falló, request/response:', err.message)
+      try {
+        const result = await window.api.ollama.chat({
+          model,
+          messages: [
+            { role: 'system', content: getSystemPrompt() },
+            ...messages,
+            { role: 'user', content: text },
+          ]
+        })
+        const msgContent = result.success
+          ? result.message
+          : `❌ Error: ${result.error}`
+        setMessages(prev => prev.map(m =>
+          m._streamId ? { ...m, content: msgContent } : m
+        ))
+      } catch (fallbackErr) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `❌ Error de conexión: ${fallbackErr.message}`
+        }])
+      }
     }
     setLoading(false)
   }
@@ -375,7 +434,7 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
           </div>
         ))}
 
-        {loading && (
+        {loading && !messages.some(m => m._streamId && m.content) && (
           <div className="flex gap-2 justify-start">
             <div className="w-6 h-6 rounded-full bg-brand-gold/20 flex items-center justify-center shrink-0">
               <Bot size={12} className="text-brand-gold" />

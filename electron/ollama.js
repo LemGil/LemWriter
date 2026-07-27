@@ -75,6 +75,91 @@ async function chat(model, messages, options = {}) {
   }
 }
 
+/**
+ * Streaming version of chat().
+ * Sends each token to onChunk(token), calls onDone(fullContent) when complete,
+ * and onError(err) on failure.
+ *
+ * Uses Ollama /api/chat with stream:true (SSE / NDJSON).
+ */
+function chatStream(model, messages, options = {}, { onChunk, onDone, onError }) {
+  const { hostname, port } = parseHost(OLLAMA_HOST);
+  const body = JSON.stringify({
+    model: model || DEFAULT_MODEL,
+    messages,
+    stream: true,
+    keep_alive: "30m",
+    options: {
+      temperature: options.temperature ?? 0.7,
+      top_p: options.top_p ?? 0.9,
+      num_ctx: 2048,
+      num_predict: 200,
+      ...options,
+    },
+  });
+
+  const req = http.request(
+    { hostname, port, path: '/api/chat', method: 'POST', headers: { 'Content-Type': 'application/json' } },
+    (res) => {
+      let buffer = '';
+      let fullContent = '';
+
+      res.on('data', (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        // Keep the last (possibly incomplete) line in the buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            const token = parsed.message?.content || '';
+            if (token) {
+              fullContent += token;
+              onChunk(token, fullContent);
+            }
+            if (parsed.done) {
+              onDone(fullContent);
+            }
+          } catch {
+            // Skip malformed lines
+          }
+        }
+      });
+
+      res.on('end', () => {
+        // Process any remaining buffer
+        if (buffer.trim()) {
+          try {
+            const parsed = JSON.parse(buffer);
+            const token = parsed.message?.content || '';
+            if (token) fullContent += token;
+            if (parsed.done || !token) onDone(fullContent);
+          } catch {
+            if (fullContent) onDone(fullContent);
+          }
+        }
+      });
+    }
+  );
+
+  req.setTimeout(300000, () => {
+    req.destroy();
+    onError(new Error('Timeout de conexión con Ollama (300s)'));
+  });
+
+  req.on('error', (err) => {
+    onError(err);
+  });
+
+  req.write(body);
+  req.end();
+
+  // Return abort function
+  return () => { req.destroy(); };
+}
+
 async function generate(model, prompt, options = {}) {
   try {
     const data = await request('POST', '/api/generate', {

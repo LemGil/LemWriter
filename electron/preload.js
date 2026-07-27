@@ -39,6 +39,15 @@ contextBridge.exposeInMainWorld('api', {
     listModels: () => ipcRenderer.invoke('ollama:list-models'),
     chat: (params) => ipcRenderer.invoke('ollama:chat', params),
     generate: (params) => ipcRenderer.invoke('ollama:generate', params),
+    chatStream: (params) => ipcRenderer.send('ollama:chat-stream', params),
+    onChunk: (callback) => {
+      const listener = (_event, data) => callback(data);
+      ipcRenderer.on('ollama:chunk', listener);
+      return () => ipcRenderer.removeListener('ollama:chunk', listener);
+    },
+    onStreamStarted: (callback) => {
+      ipcRenderer.once('ollama:stream-started', () => callback());
+    },
   },
   ai: {
     checkStatus: () => ipcRenderer.invoke('ai:check-status'),
