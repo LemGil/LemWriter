@@ -40,7 +40,7 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
   const saveToResources = async (type, data) => {
     if (!project?.id) return
     try {
-      const id = await projectService.createResource({ type, ...data })
+      const id = await projectService.findOrCreateResource({ type, ...data })
       await projectService.addResourceToProject(project.id, id)
       onResourceChange?.()
     } catch (err) {
@@ -259,6 +259,8 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
               references={references}
               onChange={handleReferencesChange}
               color="brand"
+              sectionContent={section?.content}
+              projectId={project?.id}
             />
             {references.length > 0 && (
               <div className="mt-3 pt-3 border-t theme-border">
@@ -293,14 +295,14 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
 
         {activeTab === 'notes' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Notas de estudio</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Notas de estudio</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newNoteText}
                 onChange={e => setNewNoteText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addNote() }}
                 placeholder="Escribir nota..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addNote} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold">
                 +
@@ -322,14 +324,14 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
 
         {activeTab === 'questions' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Preguntas de reflexión</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Preguntas de reflexión</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newQuestionText}
                 onChange={e => setNewQuestionText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addQuestion() }}
                 placeholder="Nueva pregunta..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addQuestion} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold">
                 +
@@ -352,14 +354,14 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
 
         {activeTab === 'points' && (
           <div>
-            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-sans">Puntos clave</h4>
+            <h4 className="text-xs font-semibold text-brand-gold-deep uppercase mb-2 font-serif">Puntos clave</h4>
             <div className="flex gap-1 mb-3">
               <input
                 value={newPointText}
                 onChange={e => setNewPointText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addPoint() }}
                 placeholder="Nuevo punto..."
-                className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                className="flex-1 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <button onClick={addPoint} className="text-xs bg-brand-gold-pale text-brand-gold-deep px-2 py-1 rounded hover:bg-brand-gold">
                 +
@@ -383,7 +385,7 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
         {activeTab === 'themes' && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-brand-gold-deep uppercase font-sans">Temas doctrinales</h4>
+              <h4 className="text-xs font-semibold text-brand-gold-deep uppercase font-serif">Temas doctrinales</h4>
               <button
                 onClick={() => setIsAddingTheme(!isAddingTheme)}
                 className="text-xs px-2 py-0.5 rounded bg-brand-gold-pale text-brand-gold-deep hover:bg-brand-gold font-sans"
@@ -398,14 +400,14 @@ const StudyPanel = ({ project, section, onSectionUpdate, onResourceChange }) => 
                   value={newThemeTitle}
                   onChange={e => setNewThemeTitle(e.target.value)}
                   placeholder="Título del tema..."
-                  className="w-full text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                  className="w-full text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold"
                 />
                 <textarea
                   value={newThemeContent}
                   onChange={e => setNewThemeContent(e.target.value)}
                   placeholder="Descripción o notas..."
                   rows={3}
-                  className="w-full text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold resize-none"
+                  className="w-full text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-gold resize-none"
                 />
                 <button
                   onClick={addTheme}

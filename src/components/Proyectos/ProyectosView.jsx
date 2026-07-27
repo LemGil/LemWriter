@@ -193,7 +193,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
               <button
                 key={type.id}
                 onClick={() => onSelectType(type.id)}
-                className="group text-left p-4 rounded-xl border-2 transition-all hover:shadow-lg bg-white border-brand-gold/20 hover:border-brand-gold/40"
+                className="group text-left p-4 rounded-xl border-2 transition-all hover:shadow-lg theme-card border-brand-gold/20 hover:border-brand-gold/40"
               >
                 <div className="flex items-center gap-3 mb-2">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${type.bg} text-white`}>
@@ -217,19 +217,19 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
 
           {/* Stats */}
           <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{statsProjects.length}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Proyectos</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{totalWords(statsProjects).toLocaleString()}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Palabras</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 text-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 text-center">
               <p className="text-xl font-bold text-brand-ink font-serif">{totalSections(statsProjects)}</p>
               <p className="text-[10px] text-brand-ink-3 font-sans">Secciones</p>
             </div>
-            <div className="bg-white rounded-xl border border-brand-gold/20 p-3 flex items-center justify-center">
+            <div className="theme-card rounded-xl border border-brand-gold/20 p-3 flex items-center justify-center">
               <span className="text-[10px] text-brand-ink-3 font-sans">Respaldos automáticos</span>
             </div>
           </div>
@@ -263,7 +263,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
               {searchFiltered.map(project => (
                 <div
                   key={project.id}
-                  className="bg-white rounded-xl border border-brand-gold/20 p-3 hover:shadow-md transition-shadow group"
+                  className="theme-card rounded-xl border border-brand-gold/20 p-3 hover:shadow-md transition-shadow group"
                 >
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0">
@@ -310,7 +310,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-dashed border-brand-gold/30 p-6 text-center">
+            <div className="theme-card rounded-xl border border-dashed border-brand-gold/30 p-6 text-center">
               <FileText size={28} className="mx-auto text-brand-gold/40 mb-2" />
               <p className="text-brand-ink-3 text-sm mb-1 font-serif">
                 {searchQuery.trim()

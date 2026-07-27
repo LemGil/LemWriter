@@ -8,6 +8,7 @@ const mammoth = require("mammoth");
 const { marked } = require("marked");
 const { listModels, chat, generate } = require("./ollama.js");
 const aiService = require("./services/aiService.js");
+const windowState = require("./window-state");
 const bibleService = require("./bible-database.js");
 
 let mainWindow = null;
@@ -15,10 +16,13 @@ let isClosing = false;
 let saveConfirmed = false;
 
 function createWindow() {
+  const state = windowState.loadState();
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
- icon: path.join(__dirname, "../build/icon_512x512.png"),
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
+    icon: path.join(__dirname, "../build/icon_512x512.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -186,6 +190,16 @@ ipcMain.handle("export:epub", async (event, project, sections, style) => {
 ipcMain.on("save-complete", () => {
   saveConfirmed = true;
   if (mainWindow && isClosing) {
+    // Guardar estado de la ventana justo antes de cerrar
+    const bounds = mainWindow.getBounds();
+    const state = windowState.loadState();
+    windowState.saveState({
+      ...state,
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+    });
     mainWindow.close();
   }
 });
@@ -437,6 +451,8 @@ ipcMain.handle("ai:extract-references", async (event, { text, projectId, options
  */
 ipcMain.handle("ai:confirm-reference", async (event, { projectId, libro, capitulo, versiculo, versiculo_final }) => {
   try {
+    const refStr = `${libro} ${capitulo}:${versiculo}${versiculo_final ? '-' + versiculo_final : ''}`;
+
     const result = db.prepare(`
       UPDATE detected_references
       SET confirmado_por_usuario = 1,
@@ -456,7 +472,21 @@ ipcMain.handle("ai:confirm-reference", async (event, { projectId, libro, capitul
       `).run(projectId, libro, capitulo, versiculo, versiculo_final || null, aiService.DEFAULT_MODEL);
     }
 
-    return { success: true };
+    // Crear recurso en la tabla resources como pasaje_biblico
+    const resourceResult = db.prepare(`
+      INSERT INTO resources (type, title, reference, created_at, updated_at)
+      VALUES ('pasaje_biblico', ?, ?, datetime('now'), datetime('now'))
+    `).run(refStr, refStr);
+
+    const resourceId = Number(resourceResult.lastInsertRowid);
+
+    // Vincular al proyecto
+    db.prepare(`
+      INSERT OR IGNORE INTO project_resources (project_id, resource_id)
+      VALUES (?, ?)
+    `).run(projectId, resourceId);
+
+    return { success: true, resourceId };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -471,6 +501,16 @@ ipcMain.handle("ai:classify-resource", async (event, { description, options }) =
   }
 });
 
+ipcMain.handle("app:save-last-project", async (event, projectId) => {
+  const state = windowState.loadState();
+  windowState.saveState({ ...state, lastProjectId: projectId });
+});
+
+ipcMain.handle("app:get-last-project", async () => {
+  const state = windowState.loadState();
+  return state.lastProjectId;
+});
+
 app.whenReady().then(() => {
   createWindow();
 
@@ -481,4 +521,22 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("will-quit", () => {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const bounds = mainWindow.getBounds();
+      const state = windowState.loadState();
+      windowState.saveState({
+        ...state,
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+      });
+    }
+  } catch (_) {
+    // Fallback para cuando la ventana ya no está disponible
+  }
 });

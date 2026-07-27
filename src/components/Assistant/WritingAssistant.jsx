@@ -111,24 +111,24 @@ const WritingAssistant = ({ projectType, wordCount, section, sections, project, 
   }
 
   const typeStyles = {
-    warning: 'bg-amber-50 border-amber-200',
+    warning: 'bg-brand-gold-pale border-brand-gold/50',
     error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
-    suggestion: 'bg-purple-50 border-purple-200',
+    info: 'bg-brand-teal-pale border-brand-teal/30',
+    suggestion: 'bg-brand-gold-shine border-brand-gold-deep/30',
   }
 
   const typeTextColors = {
-    warning: 'text-amber-800',
+    warning: 'text-brand-gold-deep',
     error: 'text-red-800',
-    info: 'text-blue-800',
-    suggestion: 'text-purple-800',
+    info: 'text-brand-teal',
+    suggestion: 'text-brand-gold-deep',
   }
 
   const typeIcons = {
-    warning: <AlertTriangle size={14} className="text-amber-600" />,
+    warning: <AlertTriangle size={14} className="text-brand-gold" />,
     error: <AlertTriangle size={14} className="text-red-600" />,
-    info: <Info size={14} className="text-blue-600" />,
-    suggestion: <Sparkles size={14} className="text-purple-600" />,
+    info: <Info size={14} className="text-brand-teal" />,
+    suggestion: <Sparkles size={14} className="text-brand-gold" />,
   }
 
   const handleDismiss = () => {

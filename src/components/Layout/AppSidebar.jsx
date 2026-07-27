@@ -38,29 +38,29 @@ const typeIcons = {
 }
 
 const typeColors = {
-  libro: 'text-blue-600',
-  book: 'text-blue-600',
-  ensenanza: 'text-yellow-600',
-  teaching: 'text-yellow-600',
-  devocional: 'text-green-600',
-  devotional: 'text-green-600',
-  estudio: 'text-amber-600',
-  study: 'text-amber-600',
-  sermon: 'text-red-600',
-  video: 'text-purple-600',
+  libro: 'text-brand-teal',
+  book: 'text-brand-teal',
+  ensenanza: 'text-brand-gold-deep',
+  teaching: 'text-brand-gold-deep',
+  devocional: 'text-devocional',
+  devotional: 'text-devocional',
+  estudio: 'text-brand-ink-2',
+  study: 'text-brand-ink-2',
+  sermon: 'text-brand-gold',
+  video: 'text-brand-teal-mid',
 }
 
 const typeBgs = {
-  libro: 'bg-blue-50',
-  book: 'bg-blue-50',
-  ensenanza: 'bg-yellow-50',
-  teaching: 'bg-yellow-50',
-  devocional: 'bg-green-50',
-  devotional: 'bg-green-50',
-  estudio: 'bg-amber-50',
-  study: 'bg-amber-50',
-  sermon: 'bg-red-50',
-  video: 'bg-purple-50',
+  libro: 'bg-brand-teal-pale',
+  book: 'bg-brand-teal-pale',
+  ensenanza: 'bg-brand-gold-pale',
+  teaching: 'bg-brand-gold-pale',
+  devocional: 'bg-devocional/10',
+  devotional: 'bg-devocional/10',
+  estudio: 'bg-brand-cream',
+  study: 'bg-brand-cream',
+  sermon: 'bg-brand-gold-shine',
+  video: 'bg-brand-teal-pale',
 }
 
 const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjects = [], onOpenProject }) => {

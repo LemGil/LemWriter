@@ -17,7 +17,7 @@ const SYSTEM_PROMPTS = {
 const QUICK_PROMPTS = [
   { label: 'Sugerir esquema', prompt: 'Sugiere un esquema o estructura para esta sección' },
   { label: 'Mejorar redacción', prompt: 'Ayúdame a mejorar la redacción de este texto' },
-  { label: 'Citas bíblicas', prompt: '¿Qué citas bíblicas podrían apoyar este tema?' },
+  { label: 'Citas bíblicas', prompt: 'Analiza los pasajes bíblicos mencionados en el texto y explica su significado, contexto y aplicación práctica' },
   { label: 'Explicar pasaje', prompt: 'Explícame el significado de este pasaje bíblico' },
 ]
 
@@ -80,8 +80,11 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
   const [models, setModels] = useState([])
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [includeContext, setIncludeContext] = useState(false)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const timerRef = useRef(null)
+  const startTimeRef = useRef(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -93,6 +96,28 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Timer de tiempo transcurrido durante carga
+  useEffect(() => {
+    if (loading) {
+      startTimeRef.current = Date.now()
+      setElapsedSeconds(0)
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      }, 1000)
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [loading])
 
   const loadModels = async () => {
     try {
@@ -130,10 +155,32 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
         contextBlock = `\n\nContexto del contenido actual del usuario:\n"""\n${sectionContent}\n"""`
       }
 
+      // Buscar referencias bíblicas en el mensaje del usuario y el contexto
+      const allText = `${text}\n${sectionContent || ''}`
+      const refs = parseBibleReferences(allText)
+      let bibleContext = ''
+      if (refs.length > 0) {
+        const citations = await fetchBibleCitations(refs)
+        if (citations.length > 0) {
+          bibleContext = '\n\n=== TEXTO BÍBLICO VERIFICADO (fuente offline RV1909) ===\n'
+          bibleContext += 'A continuación está el texto REAL de las referencias bíblicas mencionadas. '
+          bibleContext += 'USA ESTE TEXTO para responder, NO uses tu memoria.\n'
+          bibleContext += citations.map(c =>
+            `${c.referencia}: "${c.texto}"`
+          ).join('\n')
+          bibleContext += '\n===================================================='
+        }
+      }
+
       const apiMessages = [
-        { role: 'system', content: systemPrompt + contextBlock },
+        { role: 'system', content: systemPrompt + contextBlock + bibleContext },
         ...updatedMessages.map(m => ({ role: m.role, content: m.content }))
       ]
+
+      // DEBUG: Mostrar el prompt exacto en la consola
+      console.log('[OllamaChat] Prompt enviado al modelo:')
+      console.log('[OllamaChat] SYSTEM:', apiMessages[0].content)
+      console.log('[OllamaChat] USER:', text)
 
       const result = await window.api.ollama.chat({ model, messages: apiMessages })
 
@@ -203,9 +250,9 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
         }])
       }
 
-      // 4. Preparar el prompt con las citas como contexto
+      // 4. Preparar el prompt (handleSend inyectará las citas como contexto de sistema)
       const text = includeContext && sectionContent
-        ? `${promptText}:\n"""\n${sectionContent}\n"""${citationBlock}`
+        ? `${promptText}:\n"""\n${sectionContent}\n"""`
         : promptText
       setInput(text)
       inputRef.current?.focus()
@@ -334,7 +381,30 @@ const OllamaChat = ({ projectType, sectionContent, isOpen, onClose }) => {
               <Bot size={12} className="text-brand-gold" />
             </div>
             <div className="max-w-[80%] rounded-lg px-3 py-2 theme-bg-secondary">
-              <Loader2 size={14} className="animate-spin theme-text-muted" />
+              <div className="flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin theme-text-muted shrink-0" />
+                <span className="text-xs theme-text-muted">
+                  Pensando...
+                  {elapsedSeconds < 60
+                    ? ` (${elapsedSeconds} s)`
+                    : ` (${Math.floor(elapsedSeconds / 60)} min ${elapsedSeconds % 60} s)`
+                  }
+                </span>
+              </div>
+              <div className="mt-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                <div
+                  className="h-full bg-brand-gold rounded-full animate-pulse"
+                  style={{ width: `${Math.min(100, (elapsedSeconds / 120) * 100)}%` }}
+                />
+              </div>
+              {elapsedSeconds > 30 && (
+                <p className="text-[10px] theme-text-muted mt-1">
+                  {elapsedSeconds > 120
+                    ? '⏳ El modelo está tardando mucho — considera preguntas más concretas'
+                    : '💡 El modelo en CPU es lento (~1 token/s) — gracias por esperar'
+                  }
+                </p>
+              )}
             </div>
           </div>
         )}

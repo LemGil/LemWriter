@@ -16,6 +16,7 @@
  * de Node.js (disponible desde Node 18+, que Electron ya incluye).
  */
 
+const http = require("http");
 const OLLAMA_BASE_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "ibm/granite4:3b";
 const FAST_MODEL = "lfm2.5-1.2b";
@@ -59,6 +60,57 @@ async function checkOllamaStatus() {
 }
 
 /**
+ * Llamada genérica a Ollama vía http.request con timeout real.
+ * A diferencia de fetch + AbortController (que no aborta confiablemente
+ * cuando el servidor ya empezó a generar), http.request + req.destroy()
+ * SÍ interrumpe la conexión forzosamente al cumplirse el timeout.
+ */
+function ollamaRequest(path, body, timeoutMs = REQUEST_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(`${OLLAMA_BASE_URL}${path}`);
+    const options = {
+      hostname: url.hostname,
+      port: url.port || 11434,
+      path: url.pathname,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    };
+
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          reject(new Error(`Respuesta inválida de Ollama: ${data.slice(0, 200)}`));
+        }
+      });
+    });
+
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      reject(
+        new Error(
+          `El modelo tardó más de ${timeoutMs / 1000}s en responder (timeout)`
+        )
+      );
+    });
+
+    req.on("error", (err) => {
+      if (err.code === "ECONNREFUSED") {
+        reject(new Error("No se pudo conectar con Ollama. ¿Está ejecutándose?"));
+      } else {
+        reject(err);
+      }
+    });
+
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
+/**
  * Llamada genérica de chat a Ollama. Uso interno — las funciones
  * específicas (extractReferences, classifyResource) construyen el
  * prompt correcto y llaman a esta función.
@@ -67,44 +119,22 @@ async function queryModel(
   prompt,
   { model = DEFAULT_MODEL, temperature = 0.1, maxTokens = 300 } = {}
 ) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const timerLabel = `[aiService] ${model} query`;
   console.time(timerLabel);
 
   try {
-    // Usamos el endpoint nativo /api/chat de Ollama en vez de la capa de
-    // compatibilidad /v1/chat/completions: esta última no soporta
-    // parámetros nativos como num_ctx, así que num_ctx se ignoraba
-    // silenciosamente y el contexto por defecto (más grande) causaba
-    // timeouts en CPUs sin GPU.
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-        keep_alive: "30m",
-        options: {
-          temperature,
-          num_predict: maxTokens,
-          num_ctx: 2048,
-        },
-      }),
+    const data = await ollamaRequest("/api/chat", {
+      model,
+      messages: [{ role: "user", content: prompt }],
+      stream: false,
+      keep_alive: "30m",
+      options: {
+        temperature,
+        num_predict: maxTokens,
+        num_ctx: 2048,
+      },
     });
 
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Ollama respondió ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    // /api/chat devuelve { message: { role, content }, ... },
-    // a diferencia de /v1/chat/completions que anida en choices[0].message.
     const content = data.message?.content;
 
     if (!content) {
@@ -114,13 +144,7 @@ async function queryModel(
     console.timeEnd(timerLabel);
     return content;
   } catch (error) {
-    clearTimeout(timeout);
     console.timeEnd(timerLabel);
-    if (error.name === "AbortError") {
-      throw new Error(
-        `El modelo tardó más de ${REQUEST_TIMEOUT_MS / 1000}s en responder (timeout)`
-      );
-    }
     throw error;
   }
 }

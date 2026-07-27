@@ -477,7 +477,7 @@ function ResourceCard({ resource, getIcon, getTitle, onEdit, onDelete }) {
   } catch { /* ignore */ }
 
   return (
-    <div className="group p-3 rounded-lg border border-brand-gold/20 bg-white hover:border-brand-gold/30 hover:shadow-md transition-all">
+    <div className="group p-3 rounded-lg border border-brand-gold/20 theme-card hover:border-brand-gold/30 hover:shadow-md transition-all">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-lg bg-brand-gold-pale/50 flex items-center justify-center shrink-0 mt-0.5">
           {getIcon(resource.type)}
