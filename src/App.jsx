@@ -19,6 +19,9 @@ import SettingsPanel from './components/Settings/SettingsPanel';
 import { useWordCount } from './hooks/useWordCount';
 import { projectService } from './services/projectService';
 import { backupService } from './services/backupService';
+import { autoBackupService } from './services/autoBackupService';
+import { syncService } from './services/syncService';
+import { isSupabaseEnabled } from './services/supabaseClient';
 import { migrationService } from './services/migrationService';
 import { resourceToHTML } from './config/resourceFormats';
 import useAppStore from './stores/appStore';
@@ -57,6 +60,7 @@ function App() {
         }
         store.setRecentProjects(await projectService.getRecentProjects());
         backupService.createBackup().catch(() => {});
+        autoBackupService.checkAndRunAutoBackup().catch(() => {});
       } catch (err) {
         console.error('Migration failed:', err);
       } finally {
@@ -109,8 +113,18 @@ function App() {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
       await store.saveCurrentProject();
+
+      // Sincronizar con Supabase si está habilitado
+      if (isSupabaseEnabled() && store.projectId && store.project) {
+        try {
+          const secciones = store.sections || []
+          await syncService.syncProjectToCloud(store.project, secciones, [])
+        } catch (err) {
+          console.warn('[sync] Error en sync post-guardado:', err.message)
+        }
+      }
     }, 2000);
-  }, [store.projectId]);
+  }, [store.projectId, store.project, store.sections]);
 
   useEffect(() => {
     if (store.isProjectOpen()) {

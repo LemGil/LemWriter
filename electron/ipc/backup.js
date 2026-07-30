@@ -56,6 +56,30 @@ function register(ipcMain, db) {
     }
   });
 
+  ipcMain.handle('backup:read-db', async (_event, filePath) => {
+    try {
+      const buffer = fs.readFileSync(filePath);
+      return { success: true, data: buffer.toString('base64') };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('backup:restore-cloud', async (_event, base64Data) => {
+    try {
+      const dbPath = db.name;
+      const buffer = Buffer.from(base64Data, 'base64');
+      db.close();
+      fs.writeFileSync(dbPath, buffer);
+      logger.warn({}, 'Database restored from cloud — relaunching');
+      app.relaunch();
+      app.exit();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('backup:restore', async (_event, backupPath) => {
     try {
       const { backupPath: validatedPath } = validate(BackupRestoreSchema, { backupPath }, 'backup:restore');

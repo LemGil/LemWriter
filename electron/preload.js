@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('api', {
     create: () => ipcRenderer.invoke('backup:db'),
     list: () => ipcRenderer.invoke('backup:list'),
     restore: (backupPath) => ipcRenderer.invoke('backup:restore', backupPath),
+    readDb: (filePath) => ipcRenderer.invoke('backup:read-db', filePath),
+    restoreFromCloud: (base64Data) => ipcRenderer.invoke('backup:restore-cloud', base64Data),
   },
   dialog: {
     openFile: () => ipcRenderer.invoke('dialog:openFile'),

@@ -11,7 +11,14 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["escritura", "ministerio", "biblia", "electron", "react", "tiptap"],
+  "keywords": [
+    "escritura",
+    "ministerio",
+    "biblia",
+    "electron",
+    "react",
+    "tiptap"
+  ],
   "author": "Marcus Quinn — Ministerio Apostólico LemGil",
   "license": "MIT",
   "build": {
@@ -26,6 +33,7 @@
     }
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.111.0",
     "@tiptap/core": "^3.27.1",
     "@tiptap/extension-image": "^3.27.1",
     "@tiptap/extension-table": "^3.27.1",

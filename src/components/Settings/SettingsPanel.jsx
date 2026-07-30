@@ -6,6 +6,7 @@ import {
 import { projectService } from '../../services/projectService'
 import { backupService } from '../../services/backupService'
 import ColorPickerPopover from './ColorPickerPopover'
+import BackupPanel from '../BackupPanel'
 
 const THEMES = [
   { id: 'light',   icon: Sun,     label: 'Claro',        desc: 'Fondo crema clásico',     preview: 'bg-gradient-to-br from-[#FDF8F0] to-[#F5EDE0]' },
@@ -406,6 +407,11 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
               ))}
             </div>
           )}
+        </section>
+
+        {/* ═══════ RESPALDO EN LA NUBE ═══════ */}
+        <section className="bg-white rounded-xl border border-brand-gold/20 p-5">
+          <BackupPanel />
         </section>
 
         {/* ═══════ INFORMACIÓN ═══════ */}
