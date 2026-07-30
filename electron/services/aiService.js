@@ -117,7 +117,7 @@ function ollamaRequest(path, body, timeoutMs = REQUEST_TIMEOUT_MS) {
  */
 async function queryModel(
   prompt,
-  { model = DEFAULT_MODEL, temperature = 0.1, maxTokens = 300 } = {}
+  { model = DEFAULT_MODEL, temperature = 0.1, maxTokens = 500 } = {}
 ) {
   const timerLabel = `[aiService] ${model} query`;
   console.time(timerLabel);
@@ -131,7 +131,7 @@ async function queryModel(
       options: {
         temperature,
         num_predict: maxTokens,
-        num_ctx: 2048,
+        num_ctx: 8192,
       },
     });
 
@@ -173,11 +173,23 @@ function extractJsonFromResponse(text) {
  */
 async function extractReferences(texto, { model = DEFAULT_MODEL } = {}) {
   const prompt =
-    'Extrae todas las referencias bíblicas mencionadas en este texto. ' +
-    'Devuélvelas ÚNICAMENTE como una lista JSON (sin texto adicional), ' +
-    'con formato {"libro": "", "capitulo": 0, "versiculo": 0, "versiculo_final": null}. ' +
-    "Si una referencia es un solo versículo, deja versiculo_final en null. " +
-    `Texto: "${texto}"`;
+    'Eres un extractor de referencias bíblicas. Tu tarea es encontrar TODAS las referencias bíblicas ' +
+    'mencionadas en el texto de abajo, sin omitir ninguna.\n\n' +
+    'Reconoce estos formatos:\n' +
+    '- "Mateo 5:1-12", "Mateo 5:1", "Mt 5:1-12", "Mt 5:1"\n' +
+    '- "Romanos 8:28", "Ro 8:28"\n' +
+    '- "Jn 3:16", "Juan 3:16"\n' +
+    '- "1 Corintios 13:4-7", "1 Co 13:4-7"\n' +
+    '- "Salmo 23:1-6", "Sal 23:1"\n' +
+    '- "Génesis 1:1-3", "Gn 1:1"\n\n' +
+    'Reconoce TODAS las abreviaturas comunes de libros bíblicos (Mt, Mc, Lc, Jn, Hch, Ro, 1 Co, 2 Co, Gá, Ef, Fil, Col, 1 Ts, 2 Ts, 1 Ti, 2 Ti, Tit, Flm, Heb, Stg, 1 P, 2 P, 1 Jn, 2 Jn, 3 Jn, Jud, Ap, Gn, Ex, Lv, Nm, Dt, Jos, Jue, Rt, 1 S, 2 S, 1 R, 2 R, 1 Cr, 2 Cr, Esd, Neh, Est, Job, Sal, Pr, Ec, Cnt, Is, Jer, Lm, Ez, Dn, Os, Jl, Am, Abd, Jon, Miq, Nah, Hab, Sof, Hag, Zac, Mal).\n\n' +
+    'Si no hay referencias, devuelve una lista vacía [].\n\n' +
+    'Devuelve ÚNICAMENTE una lista JSON válida (sin texto adicional, sin comillas, sin markdown), ' +
+    'donde cada elemento tiene este formato exacto:\n' +
+    '{"libro": "Romanos", "capitulo": 8, "versiculo": 28, "versiculo_final": null}\n' +
+    'Para rangos usa versiculo_final:\n' +
+    '{"libro": "Mateo", "capitulo": 5, "versiculo": 1, "versiculo_final": 12}\n\n' +
+    'Texto:\n"""\n' + texto + '\n"""';
 
   const rawResponse = await queryModel(prompt, { model, temperature: 0.1, maxTokens: 300 });
   const references = extractJsonFromResponse(rawResponse);
