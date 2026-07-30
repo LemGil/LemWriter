@@ -1,7 +1,7 @@
 {
   "name": "lemwriter",
   "version": "1.0.0",
-  "description": "",
+  "description": "Plataforma de escritura ministerial con IA local, biblia offline y exportación profesional — Libros, enseñanzas, devocionales, estudios, sermones y videos.",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
@@ -11,9 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["escritura", "ministerio", "biblia", "electron", "react", "tiptap"],
+  "author": "Marcus Quinn — Ministerio Apostólico LemGil",
+  "license": "MIT",
   "build": {
     "win": {
       "icon": "build/icon.ico"
