@@ -896,3 +896,16 @@ body,
   color: var(--dorado-alt, #C9A24A);
   background: rgba(200, 167, 93, 0.05);
 }
+
+/* ── Corrector ortográfico ── */
+.spellcheck-error {
+  text-decoration: underline wavy #e53e3e;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+
+/* En modo oscuro / sobre fondo oscuro */
+.dark .spellcheck-error,
+[data-theme="dark"] .spellcheck-error {
+  text-decoration-color: #fc8181;
+}

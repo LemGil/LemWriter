@@ -9,6 +9,8 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Footnote } from './FootnoteExtension'
 import { BOOK_STYLES } from '../../config/bookStyles'
+import { SpellcheckExtension } from '../../extensions/SpellcheckExtension'
+import { SpellcheckContextMenu } from '../SpellcheckContextMenu'
 
 const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, projectStyle, sectionId }) => {
   const onUpdateRef = useRef(onUpdate)
@@ -18,7 +20,9 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        underline: false,
+      }),
       Underline,
       ResizableImage.configure({ inline: false, allowBase64: true }),
       Table.configure({ resizable: true }),
@@ -26,6 +30,7 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
       TableCell,
       TableHeader,
       Footnote,
+      SpellcheckExtension,
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
@@ -145,6 +150,7 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
           <EditorContent editor={editor} />
         </div>
       </div>
+      <SpellcheckContextMenu editor={editor} />
     </div>
   )
 }
