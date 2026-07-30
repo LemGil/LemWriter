@@ -42,10 +42,10 @@ function register(ipcMain, aiService, db) {
           ref.modelo_usado || 'ibm/granite4:3b'
         );
       }
-      return references;
+      return { success: true, references };
     } catch (error) {
       logger.error({ err: error, handler: 'ai:extract-references' }, 'Extract references error');
-      return [];
+      return { success: false, error: error.message || 'Error al extraer referencias' };
     }
   });
 
