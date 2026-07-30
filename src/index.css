@@ -372,8 +372,7 @@ body,
 }
 
 .prose-editor,
-.prose-editor .ProseMirror,
-.prose-editor .ProseMirror * {
+.prose-editor .ProseMirror {
   font-family: var(--body-font, 'EB Garamond', serif) !important;
 }
 
@@ -392,6 +391,15 @@ body,
 
 .prose-editor .ProseMirror p:first-child {
   text-indent: 0;
+}
+
+.prose-editor .ProseMirror h1,
+.prose-editor .ProseMirror h2,
+.prose-editor .ProseMirror h3,
+.prose-editor .ProseMirror h4,
+.prose-editor .ProseMirror h5,
+.prose-editor .ProseMirror h6 {
+  letter-spacing: normal;
 }
 
 .prose-editor .ProseMirror h1 {
