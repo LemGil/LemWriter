@@ -23,9 +23,9 @@ const FAST_MODEL = "lfm2.5-1.2b";
 
 // Tiempo máximo de espera por respuesta antes de abortar (evita que la UI
 // se quede "colgada" indefinidamente si el modelo tarda demasiado).
-// 120s porque en CPU sin GPU, extractReferences con varias referencias
-// y rangos puede tardar 60-90s legítimamente — no es un colgado real.
-const REQUEST_TIMEOUT_MS = 120_000;
+// 180s porque cold start en CPU (~58s) + extractReferences (~56s) = ~114s,
+// con margen para latencia adicional y múltiples referencias.
+const REQUEST_TIMEOUT_MS = 180_000;
 
 /**
  * Verifica si Ollama está corriendo y accesible.
