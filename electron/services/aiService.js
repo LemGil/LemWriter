@@ -173,30 +173,28 @@ function extractJsonFromResponse(text) {
  */
 async function extractReferences(texto, { model = DEFAULT_MODEL } = {}) {
   const prompt =
-    'Eres un extractor de referencias bíblicas. Tu tarea es encontrar TODAS las referencias bíblicas ' +
-    'mencionadas en el texto de abajo, sin omitir ninguna.\n\n' +
-    'Reconoce estos formatos:\n' +
-    '- "Mateo 5:1-12", "Mateo 5:1", "Mt 5:1-12", "Mt 5:1"\n' +
-    '- "Romanos 8:28", "Ro 8:28"\n' +
-    '- "Jn 3:16", "Juan 3:16"\n' +
-    '- "1 Corintios 13:4-7", "1 Co 13:4-7"\n' +
-    '- "Salmo 23:1-6", "Sal 23:1"\n' +
-    '- "Génesis 1:1-3", "Gn 1:1"\n\n' +
-    'Reconoce TODAS las abreviaturas comunes de libros bíblicos (Mt, Mc, Lc, Jn, Hch, Ro, 1 Co, 2 Co, Gá, Ef, Fil, Col, 1 Ts, 2 Ts, 1 Ti, 2 Ti, Tit, Flm, Heb, Stg, 1 P, 2 P, 1 Jn, 2 Jn, 3 Jn, Jud, Ap, Gn, Ex, Lv, Nm, Dt, Jos, Jue, Rt, 1 S, 2 S, 1 R, 2 R, 1 Cr, 2 Cr, Esd, Neh, Est, Job, Sal, Pr, Ec, Cnt, Is, Jer, Lm, Ez, Dn, Os, Jl, Am, Abd, Jon, Miq, Nah, Hab, Sof, Hag, Zac, Mal).\n\n' +
-    'Si no hay referencias, devuelve una lista vacía [].\n\n' +
-    'Devuelve ÚNICAMENTE una lista JSON válida (sin texto adicional, sin comillas, sin markdown), ' +
-    'donde cada elemento tiene este formato exacto:\n' +
-    '{"libro": "Romanos", "capitulo": 8, "versiculo": 28, "versiculo_final": null}\n' +
-    'Para rangos usa versiculo_final:\n' +
-    '{"libro": "Mateo", "capitulo": 5, "versiculo": 1, "versiculo_final": 12}\n\n' +
-    'Texto:\n"""\n' + texto + '\n"""';
+    'Del siguiente texto, extrae SOLO las referencias bíblicas (ej: Mateo 5:1-12, Romanos 8:28, Jn 3:16). ' +
+    'Responde ÚNICAMENTE con un JSON array. Si no hay referencias, responde []. ' +
+    'Cada elemento: {"libro": "Nombre", "capitulo": N, "versiculo": N, "versiculo_final": N o null}. ' +
+    'NO repitas la misma referencia. NO añadas texto fuera del JSON.\n\n' +
+    'Texto:\n' + texto;
 
-  const rawResponse = await queryModel(prompt, { model, temperature: 0.1, maxTokens: 300 });
-  const references = extractJsonFromResponse(rawResponse);
+  const rawResponse = await queryModel(prompt, { model, temperature: 0.1, maxTokens: 500 });
+
+  let references = extractJsonFromResponse(rawResponse);
 
   if (!Array.isArray(references)) {
     throw new Error("Se esperaba un array de referencias, se recibió otro formato");
   }
+
+  // Deduplicar: misma combinación libro + capítulo + versículos
+  const seen = new Set();
+  references = references.filter((ref) => {
+    const key = `${ref.libro}|${ref.capitulo}|${ref.versiculo}|${ref.versiculo_final || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   return references;
 }
