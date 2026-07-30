@@ -110,6 +110,10 @@ const useAppStore = create((set, get) => ({
     });
   },
 
+  setProjectStyle(style) {
+    set({ projectStyle: style });
+  },
+
   // ── Sections ─────────────────────────────────────────────────
   selectSection(sectionId) {
     set({ activeSection: sectionId });

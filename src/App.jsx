@@ -323,7 +323,7 @@ function App() {
                 project={store.project}
                 projectStyle={store.projectStyle}
                 onSectionUpdate={store.refreshSection}
-                onStyleChange={(style) => store.set({ projectStyle: style })}
+                onStyleChange={(style) => store.setProjectStyle(style)}
                 onResourceChange={store.bumpResourceRefresh}
               />
             }
