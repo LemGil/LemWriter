@@ -146,7 +146,7 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
       </header>
       
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <aside className={`shrink-0 border-r theme-border theme-bg hidden md:block overflow-y-auto no-scrollbar transition-all duration-300 ${isLeftCollapsed ? 'w-20 overflow-hidden' : 'w-64'}`}>
+        <aside className={`flex flex-col h-full shrink-0 border-r theme-border theme-bg hidden md:block overflow-y-auto no-scrollbar transition-all duration-300 ${isLeftCollapsed ? 'w-20 overflow-hidden' : 'w-64'}`}>
           {React.cloneElement(sidebar, { collapsed: isLeftCollapsed })}
         </aside>
 
@@ -157,7 +157,7 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
           </main>
         </div>
 
-        <aside className={`shrink-0 border-l theme-border theme-bg hidden lg:block overflow-y-auto no-scrollbar transition-all duration-200 ${isRightCollapsed ? 'w-16' : 'w-72'}`}>
+        <aside className={`flex flex-col h-full shrink-0 border-l theme-border theme-bg hidden lg:block overflow-y-auto no-scrollbar transition-all duration-200 ${isRightCollapsed ? 'w-16' : 'w-72'}`}>
           {rightPanel}
         </aside>
       </div>

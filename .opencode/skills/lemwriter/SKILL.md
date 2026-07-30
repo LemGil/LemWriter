@@ -237,6 +237,9 @@ Ambos deben mantenerse sincronizados. Si se agrega entrada a `STYLES_BY_TYPE` si
 | **AI service timeout regression** | ✅ Resuelto: `REQUEST_TIMEOUT_MS` corregido a 120_000 |
 | **AI service logging** | ✅ Resuelto: `console.time/timeEnd` interno |
 | **ai:confirm-reference handler** | ✅ Resuelto: handler IPC + preload + fallback INSERT |
+| **Editor se remountaba al cambiar sección** | ✅ Resuelto: `setContent()` por `sectionId` en vez de `key` |
+| **Overflow entrecortado en sidebar colapsado** | ✅ Resuelto: `overflow-y-auto` pisaba `overflow-hidden`; movido a rama expandida |
+| **Paneles colapsados sin iconos** | ✅ Resuelto: mini emojis/badge/SVG ring en sidebar, iconos verticales en panel derecho |
 
 ## Exportación
 

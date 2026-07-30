@@ -58,5 +58,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   bible: {
     getVerse: (params) => ipcRenderer.invoke('bible:getVerse', params),
+  },
+  sections: {
+    deleteSection: (sectionId) => ipcRenderer.invoke('sections:delete', sectionId),
   }
 })

@@ -1,12 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronRight, ChevronDown, Plus, BookOpen, GraduationCap } from 'lucide-react'
 
-const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, icon: HeaderIcon, title = 'Estudio actual', addLabel = 'Agregar clase' }) => {
+const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, onDeleteSection, icon: HeaderIcon, title = 'Estudio actual', addLabel = 'Agregar clase' }) => {
   const Icon = HeaderIcon || GraduationCap
   const [expandedGroups, setExpandedGroups] = useState({})
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef(null)
+
+  const handleDelete = async (e, sectionId) => {
+    e.stopPropagation()
+    if (window.confirm('¿Eliminar esta sección?')) {
+      const result = await window.api.sections.deleteSection(sectionId)
+      if (result.success && onDeleteSection) {
+        onDeleteSection(sectionId)
+      }
+    }
+  }
 
   useEffect(() => {
     if (editingId && inputRef.current) {
@@ -42,11 +52,14 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
   }
 
   const renderSection = (section) => (
-    <button
+    <div
       key={section.id}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectSection(section.id)}
       onDoubleClick={() => handleDoubleClick(section)}
-      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group ${
+      onKeyDown={(e) => { if (e.key === 'Enter') onSelectSection(section.id) }}
+      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
         activeSection === section.id
           ? 'bg-yellow-100 text-yellow-800 font-medium'
           : 'text-gray-700 hover:bg-gray-100'
@@ -64,9 +77,16 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
           className="min-w-0 flex-1 text-sm bg-white border border-yellow-400 rounded px-1 outline-none"
         />
       ) : (
-        <span className="truncate">{section.title}</span>
+        <span className="truncate flex-1">{section.title}</span>
       )}
-    </button>
+      <button
+        onClick={(e) => handleDelete(e, section.id)}
+        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity rounded hover:bg-red-50"
+        title="Eliminar sección"
+      >
+        ✕
+      </button>
+    </div>
   )
 
   const seriesGroups = []

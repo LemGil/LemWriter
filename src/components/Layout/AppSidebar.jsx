@@ -82,11 +82,11 @@ const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjec
       <div key={item.id}>
         <button
           onClick={handleNavClick}
-          className={`w-full flex items-center gap-3 py-2.5 text-sm transition-colors
+          className={`w-full flex items-center gap-3 py-2.5 text-sm transition-colors sidebar-nav-item
             ${collapsed ? 'justify-center px-0' : 'px-4'}
             ${isActive
-              ? 'bg-brand-gold-pale text-brand-gold-deep border-r-2 border-brand-gold font-medium'
-              : 'text-brand-ink-3 hover:text-brand-ink hover:bg-brand-gold-pale/40'
+              ? 'sidebar-nav-item-active'
+              : 'sidebar-nav-item-inactive'
             }`}
           title={item.label}
         >
@@ -95,17 +95,17 @@ const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjec
           {!collapsed && item.id === 'proyectos' && (
             <ChevronDown
               size={14}
-              className={`ml-auto transition-transform ${proyectosOpen ? '' : '-rotate-90'}`}
+              className={`ml-auto transition-transform opacity-60 ${proyectosOpen ? '' : '-rotate-90'}`}
             />
           )}
         </button>
 
         {/* Proyectos recientes como sub-lista bajo "Proyectos" */}
         {!collapsed && item.id === 'proyectos' && proyectosOpen && recentProjects.length > 0 && (
-          <div className="border-t border-brand-gold/10 mt-1 pt-1 pb-1">
+          <div className="border-t border-white/5 mt-1 pt-1 pb-1">
             {recentProjects.slice(0, 10).map((p) => {
               const PIcon = typeIcons[p.type] || FolderOpen
-              const pColor = typeColors[p.type] || 'text-brand-ink-3'
+              const pColor = typeColors[p.type] || 'text-white/55'
               const pBg = typeBgs[p.type] || ''
               return (
                 <button
@@ -114,8 +114,8 @@ const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjec
                     e.stopPropagation()
                     onOpenProject(p)
                   }}
-                  className={`w-full flex items-center gap-2.5 px-4 py-1.5 text-xs transition-colors
-                    text-brand-ink-3 hover:text-brand-ink hover:bg-brand-gold-pale/30`}
+                  className={`w-full flex items-center gap-2.5 px-4 py-1.5 text-xs transition-colors project-list-item
+                    text-white/45 hover:text-white/70 hover:bg-white/[0.04]`}
                   title={`Abrir ${p.title}`}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center ${pBg} shrink-0`}>
@@ -133,19 +133,21 @@ const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjec
 
   return (
     <nav
-      className={`h-full flex flex-col border-r theme-border theme-bg transition-all duration-200 shrink-0 ${
+      className={`h-full flex flex-col border-r border-white/10 sidebar-nav transition-all duration-200 shrink-0 ${
         collapsed ? 'w-[52px]' : 'w-[200px]'
       }`}
     >
-      {/* Logo */}
-      <div className={`flex items-center h-14 border-b theme-border shrink-0 ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-          style={{ background: '#1A3A4A' }}
+      {/* Logo / Brand */}
+      <div className={`flex items-center h-14 border-b border-white/10 shrink-0 sidebar-logo-area ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm lw-logo-mark"
+          style={{ background: 'var(--dorado, #C8A75D)', color: 'var(--azul-petroleo, #1A3A4A)' }}
         >
           LW
         </div>
         {!collapsed && (
-          <span className="ml-2.5 text-sm font-bold text-brand-ink font-serif truncate">
+          <span className="ml-2.5 text-sm font-bold truncate sidebar-app-name"
+            style={{ fontFamily: 'var(--font-titulo, "Cinzel", Georgia, serif)', color: 'var(--marfil, #F7F3E9)', letterSpacing: '0.04em' }}
+          >
             LemWriter
           </span>
         )}
@@ -157,10 +159,10 @@ const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjec
       </div>
 
       {/* Collapse Toggle */}
-      <div className="border-t theme-border shrink-0">
+      <div className="border-t border-white/10 shrink-0">
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-center py-3 text-brand-ink-3 hover:text-brand-ink hover:bg-brand-gold-pale/40 transition-colors"
+          className="w-full flex items-center justify-center py-3 text-white/45 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
           title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

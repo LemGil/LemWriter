@@ -170,6 +170,8 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 - ~~**Placeholder de Configuración**: Mostraba solo "Próximamente".~~ **Resuelto**: Reemplazado por `SettingsPanel` completo con selector de tema, editor de colores personalizados, respaldos e información.
 - ~~**`inputRef` eliminado accidentalmente**: Al añadir estados de colapso en Layout.jsx se eliminó `inputRef`, causando que la app se quedara en blanco al editar el título.~~ **Resuelto**: Restaurada la declaración `const inputRef = useRef(null)`.
 - ~~**Conflicto de clases Tailwind en panel derecho colapsable**: `w-72` duplicado en clase base y ternario impedía el colapso.~~ **Resuelto**: Eliminado `w-72` de la clase base, dejándolo solo en el ternario.
+- ~~**Editor se remountaba al cambiar de sección**: `key={activeSection}` forzaba recrear Tiptap, perdiendo undo/redo y cursor.~~ **Resuelto**: `Editor.jsx` ahora usa `setContent()` controlado por `sectionId` en vez de key. El editor se monta una sola vez por proyecto.
+- ~~**DOCX: confirmar formato real**: Se verificó que la exportación DOCX ya usa `htmlToDocxElements` con parseo completo de HTML a elementos docx (no era pendiente activo).~~ **Verificado**: Exportador DOCX funcional con formato real, sin cambios necesarios.
 
 ## Fase 5 — Completa
 | Subfase | Estado | Detalle |
@@ -194,18 +196,22 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 | Sidebar izquierdo colapsable | ✅ | Botón en header con separador visual. Colapsa a `w-20` (80px) con `overflow-hidden`. Transición `duration-300`. |
 | Panel derecho colapsable | ✅ | Botón en header junto a ThemeToggle. Colapsa a `w-16` (64px). Transición `duration-200`. |
 | Tooltips en botones | ✅ | Atributos `title` descriptivos en los 3 botones de colapso/expansión. |
-| Errores corregidos | ✅ | `inputRef` restaurado; conflicto de clases Tailwind en panel derecho resuelto. |
+| Iconos en paneles colapsados | ✅ | Sidebar izquierdo: header solo icono grande, tabs iconos verticales, mini emojis por sección/badge/SVG ring según pestaña. Panel derecho: iconos verticales. Ningún texto visible. |
+| Errores corregidos | ✅ | `inputRef` restaurado; conflicto de clases Tailwind en panel derecho resuelto; `overflow-y-auto` pisaba `overflow-hidden` en colapso, ocultando texto entrecortado. |
 
-## Pendiente
-1. **Restaurar respaldo** — UI para seleccionar y restaurar un backup desde la lista
-2. **Toolbar contextual** — Botones específicos para sermon/video
-3. **Testing** — No hay suite de tests configurada
-4. **Mejorar aspecto de paneles colapsados** — Mostrar iconos pequeños dentro de sidebars/paneles cuando están colapsados, en lugar de solo espacio vacío
-5. ~~**Conectar AI service a la UI** — ✅ `ai:confirm-reference` handler implementado y expuesto en preload. `DetectarReferenciasButton.jsx` integrado en Toolbar.jsx.~~
-6. **OllamaChat: indicador de carga con tiempo transcurrido** — El spinner no muestra cuánto lleva esperando (crítico en CPU lento porque 30s+ de espera sin feedback parece colgado).
-7. ~~**DetectarReferenciasButton.jsx** — Integrado en la toolbar del editor (Toolbar.jsx).~~
-8. **UI de búsqueda bíblica** — Componente para buscar versículos desde el editor (modal o panel lateral) usando `window.api.bible.getVerse()`.
-9. **Integrar búsqueda bíblica en asistente IA** — Que OllamaChat pueda citar versículos automáticamente desde la BD offline.
+## Pendientes — Todos resueltos ✅
+
+| # | Pendiente | Estado | Implementación |
+|---|---|---|---|
+| 1 | Restaurar respaldo | ✅ | IPC `backup:restore` + `backupService.restoreBackup()` + botón "Restaurar" por backup en SettingsPanel con confirmación y relaunch |
+| 2 | Toolbar contextual | ✅ | Sermón: 3 botones (Target, HelpCircle, BookOpen). Video: 3 botones (Video, BookOpen, StickyNote). |
+| 3 | Testing | ✅ | 121 tests en 4 archivos. `vitest run` pasa completo. |
+| 4 | Iconos en paneles colapsados | ✅ | Sidebar: header solo icono, mini emojis/badge/SVG ring. Panel derecho: iconos verticales. Sin texto. |
+| 5 | Conectar AI service a la UI | ✅ | `ai:confirm-reference` handler + `DetectarReferenciasButton` en toolbar |
+| 6 | OllamaChat: timer de carga | ✅ | `elapsedSeconds` con setInterval 1s, muestra "(X s)" o "(X min Y s)", barra de progreso, hints contextuales >30s y >120s |
+| 7 | DetectarReferenciasButton | ✅ | Integrado en Toolbar.jsx |
+| 8 | UI de búsqueda bíblica | ✅ | `BibleVerseLookup.jsx`: modal con selector de libros (AT/NT), capítulo/versículo/rango, búsqueda en BD offline RV1909, inserción en editor, recientes. Icono 📖 en toolbar. |
+| 9 | Búsqueda bíblica en asistente IA | ✅ | `fetchBibleCitations()` parsea referencias en texto y busca en BD offline. Inyecta texto real como contexto de sistema. "Citas bíblicas" quick prompt muestra resultados inline. |
 
 ## Detalle completo
 Ver `.opencode/skills/lemwriter/SKILL.md` para contexto completo del proyecto.

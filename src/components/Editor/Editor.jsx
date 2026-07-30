@@ -10,11 +10,11 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { Footnote } from './FootnoteExtension'
 import { BOOK_STYLES } from '../../config/bookStyles'
 
-const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, projectStyle }) => {
-  const contentRef = useRef(content)
+const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, projectStyle, sectionId }) => {
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
   const editorContainerRef = useRef(null)
+  const previousSectionIdRef = useRef(sectionId)
 
   const editor = useEditor({
     extensions: [
@@ -27,7 +27,7 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
       TableHeader,
       Footnote,
     ],
-    content: contentRef.current || '',
+    content: content || '',
     onUpdate: ({ editor }) => {
       if (onUpdateRef.current) onUpdateRef.current(editor)
     },
@@ -43,6 +43,14 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
       onEditorReady?.(editor)
     }
   }, [editor])
+
+  // Update editor content when section changes (prevents remount / flash / undo-loss)
+  useEffect(() => {
+    if (!editor) return
+    if (sectionId === previousSectionIdRef.current) return
+    previousSectionIdRef.current = sectionId
+    editor.commands.setContent(content || '', { emitUpdate: false })
+  }, [editor, sectionId, content])
 
   useEffect(() => {
     const estilo = BOOK_STYLES[projectStyle];

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronRight, ChevronDown, Plus, Heart } from 'lucide-react'
 
-const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection }) => {
+const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, onDeleteSection }) => {
   const [expandedGroups, setExpandedGroups] = useState({})
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
@@ -16,6 +16,16 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
 
   const toggleGroup = (id) => {
     setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const handleDelete = async (e, sectionId) => {
+    e.stopPropagation()
+    if (window.confirm('¿Eliminar esta sección?')) {
+      const result = await window.api.sections.deleteSection(sectionId)
+      if (result.success && onDeleteSection) {
+        onDeleteSection(sectionId)
+      }
+    }
   }
 
   const handleDoubleClick = (section) => {
@@ -41,11 +51,14 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
   }
 
   const renderEntry = (section) => (
-    <button
+    <div
       key={section.id}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectSection(section.id)}
       onDoubleClick={() => handleDoubleClick(section)}
-      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group ${
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectSection(section.id) }}
+      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
         activeSection === section.id
           ? 'bg-green-100 text-green-800 font-medium'
           : 'text-gray-700 hover:bg-gray-100'
@@ -63,9 +76,16 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
           className="min-w-0 flex-1 text-sm bg-white border border-green-400 rounded px-1 outline-none"
         />
       ) : (
-        <span className="truncate">{section.title}</span>
+        <span className="truncate flex-1">{section.title}</span>
       )}
-    </button>
+      <button
+        onClick={(e) => handleDelete(e, section.id)}
+        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+        title="Eliminar sección"
+      >
+        ✕
+      </button>
+    </div>
   )
 
   return (

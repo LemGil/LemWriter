@@ -10,11 +10,13 @@ const sectionIcons = {
   conclusion: '✅',
   bibliografia: '📚',
   apendice: '📎',
+  tabla_contenidos: '📋',
+  dia: '📅',
 }
 
 const getSectionIcon = (type) => sectionIcons[type] || '📄'
 
-const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRenameSection }) => {
+const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRenameSection, onDeleteSection }) => {
   const [expandedGroups, setExpandedGroups] = useState({
     front: true,
     chapters: true,
@@ -24,6 +26,16 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef(null)
 
+  const handleDelete = async (e, sectionId) => {
+    e.stopPropagation()
+    if (window.confirm('¿Eliminar esta sección?')) {
+      const result = await window.api.sections.deleteSection(sectionId)
+      if (result.success && onDeleteSection) {
+        onDeleteSection(sectionId)
+      }
+    }
+  }
+
   useEffect(() => {
     if (editingId && inputRef.current) {
       inputRef.current.focus()
@@ -31,9 +43,11 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
     }
   }, [editingId])
 
+  const KNOWN_TYPES = ['portada', 'dedicatoria', 'prologo', 'introduccion', 'capitulo', 'conclusion', 'bibliografia', 'apendice']
   const frontMatter = sections.filter(s => ['portada', 'dedicatoria', 'prologo', 'introduccion'].includes(s.type))
   const chapters = sections.filter(s => s.type === 'capitulo')
   const backMatter = sections.filter(s => ['conclusion', 'bibliografia', 'apendice'].includes(s.type))
+  const otherSections = sections.filter(s => !KNOWN_TYPES.includes(s.type))
 
   const toggleGroup = (group) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))
@@ -62,11 +76,14 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
   }
 
   const renderSection = (section) => (
-    <button
+    <div
       key={section.id}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectSection(section.id)}
       onDoubleClick={() => handleDoubleClick(section)}
-      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group ${
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectSection(section.id) }}
+      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
         activeSection === section.id
           ? 'bg-blue-100 text-blue-800 font-medium'
           : 'text-gray-700 hover:bg-gray-100'
@@ -84,9 +101,16 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
           className="min-w-0 flex-1 text-sm bg-white border border-blue-400 rounded px-1 outline-none"
         />
       ) : (
-        <span className="truncate">{section.title}</span>
+        <span className="truncate flex-1">{section.title}</span>
       )}
-    </button>
+      <button
+        onClick={(e) => handleDelete(e, section.id)}
+        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+        title="Eliminar sección"
+      >
+        ✕
+      </button>
+    </div>
   )
 
   return (
@@ -150,6 +174,24 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
           </div>
         )}
       </div>
+
+      {/* Otras secciones */}
+      {otherSections.length > 0 && (
+        <div className="mb-1">
+          <button
+            onClick={() => toggleGroup('other')}
+            className="w-full flex items-center gap-1 px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:bg-gray-100"
+          >
+            {expandedGroups.other ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            Otras secciones ({otherSections.length})
+          </button>
+          {expandedGroups.other !== false && (
+            <div className="ml-2">
+              {otherSections.map(renderSection)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

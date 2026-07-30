@@ -148,14 +148,12 @@ function App() {
   const handleSelectSection = useCallback(
     (sectionId) => {
       store.selectSection(sectionId);
-      store.setEditorInstance(null);
     },
     [],
   );
 
   const handleAddSection = useCallback((newSection) => {
     store.addSection(newSection);
-    store.setEditorInstance(null);
   }, []);
 
   const handleAddSectionFromTemplate = useCallback(() => {
@@ -180,6 +178,10 @@ function App() {
 
   const handleRenameSection = useCallback((sectionId, newTitle) => {
     store.renameSection(sectionId, newTitle);
+  }, []);
+
+  const handleDeleteSection = useCallback((sectionId) => {
+    store.deleteSection(sectionId);
   }, []);
 
   const handleContentUpdate = useCallback(
@@ -282,6 +284,7 @@ function App() {
                 onAddSection={handleAddSection}
                 onAddSectionFromTemplate={handleAddSectionFromTemplate}
                 onRenameSection={handleRenameSection}
+                onDeleteSection={handleDeleteSection}
                 projectTitle={store.projectName}
                 templateKey={store.templateKey}
                 onInsertResource={handleInsertResource}
@@ -298,7 +301,7 @@ function App() {
             editor={
               store.activeSection ? (
                 <Editor
-                  key={store.activeSection}
+                  sectionId={store.activeSection}
                   content={getActiveContent()}
                   onUpdate={handleContentUpdate}
                   onEditorReady={handleEditorReady}

@@ -138,6 +138,13 @@ const useAppStore = create((set, get) => ({
     }));
   },
 
+  deleteSection(sectionId) {
+    set((s) => ({
+      sections: s.sections.filter((sec) => sec.id !== sectionId),
+      activeSection: s.activeSection === sectionId ? null : s.activeSection,
+    }));
+  },
+
   refreshSection(sectionId) {
     return projectService.getSection(sectionId).then((updated) => {
       if (updated) {
@@ -228,11 +235,9 @@ const useAppStore = create((set, get) => ({
   isLeftCollapsed: false,
   isRightCollapsed: false,
   toggleLeftPanel() {
-    console.log('DEBUG: toggleLeftPanel ejecutado');
     set((s) => ({ isLeftCollapsed: !s.isLeftCollapsed }));
   },
   toggleRightPanel() {
-    console.log('toggleRightPanel called');
     set((s) => ({ isRightCollapsed: !s.isRightCollapsed }));
   },
   setLeftPanelCollapsed(v) { set({ isLeftCollapsed: v }); },

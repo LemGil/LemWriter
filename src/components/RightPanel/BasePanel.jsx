@@ -25,11 +25,10 @@ const ACCENT_MAP = {
 };
 
 function BasePanel({ tabs, activeTab, onTabChange, accent = 'brand', children, collapsed }) {
-  console.log('BasePanel collapsed:', collapsed);
   const colors = ACCENT_MAP[accent] || ACCENT_MAP.brand;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 min-h-0 flex flex-col">
       {collapsed ? (
         /* Vertical icon strip when collapsed */
         <div className="flex flex-col items-center py-2 gap-1">
@@ -72,7 +71,7 @@ function BasePanel({ tabs, activeTab, onTabChange, accent = 'brand', children, c
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar p-3">
+          <div className="flex-1 p-3">
             {typeof children === 'function' ? children(activeTab) : children}
           </div>
         </>

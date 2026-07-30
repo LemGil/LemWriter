@@ -156,6 +156,16 @@ ipcAi.register(ipcMain, aiService, db);
 ipcOllama.register(ipcMain, { listModels, chat, generate, chatStream });
 ipcApp.register(ipcMain, { mainWindowGetter: () => mainWindow, isClosingGetter: () => isClosing, setSaveConfirmed: (v) => { saveConfirmed = v; }, setIsClosing: (v) => { isClosing = v; }, windowState });
 
+ipcMain.handle('sections:delete', async (event, sectionId) => {
+  try {
+    const stmt = db.prepare('DELETE FROM sections WHERE id = ?');
+    const result = stmt.run(sectionId);
+    return { success: true, changes: result.changes };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 logger.info("Registered IPC modules");
 
 app.whenReady().then(() => {

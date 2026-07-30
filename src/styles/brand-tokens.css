@@ -1,0 +1,50 @@
+/* ============================================================
+   IDENTIDAD VISUAL — Ministerio Apostólico LemGil
+   Importar este archivo en main.jsx ANTES de index.css.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Paleta principal ── */
+  --dorado:          #C8A75D;
+  --dorado-alt:      #C9A24A;
+  --dorado-pale:     rgba(200, 167, 93, 0.12);
+  --dorado-border:   rgba(200, 167, 93, 0.22);
+  --azul-petroleo:   #1A3A4A;
+  --azul-dark:       #0f252f;
+  --azul-mid:        #1e4357;
+  --marfil:          #F7F3E9;
+  --marfil-dark:     #ede8d9;
+
+  /* ── Complementarios ── */
+  --blanco:          #FFFFFF;
+  --gris-oscuro:     #2E2E2E;
+  --gris-claro:      #D9D9D9;
+
+  /* ── Tipografía por rol ── */
+  --font-titulo:     'Cinzel', Georgia, serif;
+  --font-lectura:    'Crimson Pro', Georgia, serif;
+  --font-interfaz:   'Inter', system-ui, sans-serif;
+
+  /* ── Aliases semánticos (para usar en componentes) ── */
+  --color-sidebar-bg:      var(--azul-dark);
+  --color-sidebar-border:  rgba(200, 167, 93, 0.12);
+  --color-sidebar-text:    rgba(247, 243, 233, 0.55);
+  --color-sidebar-active:  var(--dorado);
+
+  --color-panel-bg:        var(--marfil);
+  --color-panel-border:    rgba(26, 58, 74, 0.12);
+
+  --color-editor-bg:       var(--blanco);
+  --color-editor-title:    var(--azul-petroleo);
+  --color-editor-body:     var(--gris-oscuro);
+
+  --color-acento:          var(--dorado);
+  --color-acento-hover:    var(--dorado-alt);
+  --color-btn-primary-bg:  var(--azul-petroleo);
+  --color-btn-primary-text: var(--dorado);
+
+  --color-ref-border:      var(--dorado);
+  --color-ref-title:       var(--azul-petroleo);
+}
