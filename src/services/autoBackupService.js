@@ -1,7 +1,7 @@
-import { cloudBackupService } from './cloudBackupService'
-import { isSupabaseEnabled } from './supabaseClient'
+import { cloudBackupService } from './cloudBackupService.js'
+import { isSupabaseEnabled } from './supabaseClient.js'
 
-const STORAGE_KEY = 'lw_auto_backup_config'
+const STORAGE_KEY = 'lemwriter_last_backup'
 
 /**
  * Lee la configuración de auto-backup desde localStorage.
@@ -45,6 +45,7 @@ async function checkAndRunAutoBackup() {
     // 1. Crear backup local
     const localResult = await window.api.backup.create()
     if (!localResult || !localResult.success) {
+      console.warn(`[LemWriter] Backup automático: ERROR en backup local: ${localResult?.error || 'desconocido'}`)
       return { success: false, error: localResult?.error || 'backup local falló' }
     }
 
@@ -56,8 +57,10 @@ async function checkAndRunAutoBackup() {
     config.lastBackup = new Date().toISOString()
     saveConfig(config)
 
+    console.log(`[LemWriter] Backup automático: ${cloudResult.success ? 'completado' : 'fallo en nube (' + cloudResult.error + ')'} (local: ${localResult.path})`)
     return { success: true, local: localResult, cloud: cloudResult }
   } catch (err) {
+    console.warn(`[LemWriter] Backup automático: ERROR ${err.message}`)
     return { success: false, error: err.message }
   }
 }

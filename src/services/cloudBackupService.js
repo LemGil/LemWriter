@@ -1,4 +1,4 @@
-import { supabase, isSupabaseEnabled } from './supabaseClient'
+import { supabase, isSupabaseEnabled } from './supabaseClient.js'
 
 const BACKUPS_BUCKET = 'lemwriter-backups'
 const BACKUPS_TABLE = 'lw_backups'

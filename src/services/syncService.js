@@ -1,4 +1,4 @@
-import { supabase, isSupabaseEnabled } from './supabaseClient'
+import { supabase, isSupabaseEnabled } from './supabaseClient.js'
 
 // Mapeo: tabla local → tabla Supabase
 const TABLES = {
