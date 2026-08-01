@@ -1,5 +1,11 @@
 const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("path");
+
+// Forzar HTTP/1.1 en Chromium: HTTP/2 contra Cloudflare/Supabase falla con
+// "PROTOCOL_ERROR" en uploads grandes desde algunas redes (fetch del renderer
+// corta con "Failed to fetch"). HTTP/1.1 es más tolerante y completo los uploads.
+app.commandLine.appendSwitch("disable-http2");
+
 require("./database.js");
 const db = require("./database.js");
 const { setMainWindow } = require("./export.js");

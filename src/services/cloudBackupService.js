@@ -12,8 +12,11 @@ const BACKUPS_TABLE = 'lw_backups'
 async function uploadBackup(filePath, filename) {
   if (!isSupabaseEnabled()) return { success: false, error: 'offline' }
 
+  // Los backups se suben comprimidos con gzip (backup:read-db lo comprime)
+  const storageName = filename.endsWith('.gz') ? filename : `${filename}.gz`
+
   try {
-    // Leer el archivo como base64 desde el proceso main vía IPC
+    // Leer el archivo como base64 comprimido desde el proceso main vía IPC
     const result = await window.api.backup.readDb(filePath)
     if (!result.success) return { success: false, error: result.error || 'error al leer BD' }
 
@@ -24,11 +27,11 @@ async function uploadBackup(filePath, filename) {
       byteNums[i] = byteChars.charCodeAt(i)
     }
     const blob = new Blob([byteNums], { type: 'application/octet-stream' })
-    const file = new File([blob], filename, { type: 'application/octet-stream' })
+    const file = new File([blob], storageName, { type: 'application/octet-stream' })
 
     const { data, error } = await supabase.storage
       .from(BACKUPS_BUCKET)
-      .upload(filename, file, { upsert: true })
+      .upload(storageName, file, { upsert: true })
 
     if (error) return { success: false, error: error.message }
 
@@ -36,14 +39,14 @@ async function uploadBackup(filePath, filename) {
     const { error: logError } = await supabase
       .from(BACKUPS_TABLE)
       .insert({
-        filename,
+        filename: storageName,
         size_bytes: file.size,
-        storage_path: data?.path || filename,
+        storage_path: data?.path || storageName,
       })
 
     if (logError) console.warn('[cloudBackup] Error en log de backup:', logError.message)
 
-    return { success: true, path: data?.path || filename }
+    return { success: true, path: data?.path || storageName }
   } catch (err) {
     return { success: false, error: err.message }
   }

@@ -1,6 +1,7 @@
 // IPC handlers for database backup/restore
 const path = require('path');
 const fs = require('fs');
+const zlib = require('zlib');
 const { app } = require('electron');
 const logger = require('../logger');
 const { validate, BackupRestoreSchema } = require('../schemas/ipc-schemas');
@@ -59,7 +60,14 @@ function register(ipcMain, db) {
   ipcMain.handle('backup:read-db', async (_event, filePath) => {
     try {
       const buffer = fs.readFileSync(filePath);
-      return { success: true, data: buffer.toString('base64') };
+      // Comprimir con gzip para reducir drásticamente el tamaño a subir a la nube
+      // (la BD completa puede pesar decenas de MB; gzip la reduce ~65%)
+      const gzipped = zlib.gzipSync(buffer);
+      logger.info(
+        { originalSize: buffer.length, compressedSize: gzipped.length },
+        'backup:read-db gzip'
+      );
+      return { success: true, data: gzipped.toString('base64'), compressed: true };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -68,7 +76,16 @@ function register(ipcMain, db) {
   ipcMain.handle('backup:restore-cloud', async (_event, base64Data) => {
     try {
       const dbPath = db.name;
-      const buffer = Buffer.from(base64Data, 'base64');
+      const rawBuffer = Buffer.from(base64Data, 'base64');
+      // Detectar gzip por magic bytes (1f 8b) y descomprimir si aplica
+      let buffer = rawBuffer;
+      if (rawBuffer.length > 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
+        buffer = zlib.gunzipSync(rawBuffer);
+        logger.info(
+          { compressedSize: rawBuffer.length, restoredSize: buffer.length },
+          'backup:restore-cloud gunzip'
+        );
+      }
       db.close();
       fs.writeFileSync(dbPath, buffer);
       logger.warn({}, 'Database restored from cloud — relaunching');
