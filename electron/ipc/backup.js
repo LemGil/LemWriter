@@ -2,9 +2,119 @@
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
+const https = require('https');
 const { app } = require('electron');
 const logger = require('../logger');
 const { validate, BackupRestoreSchema } = require('../schemas/ipc-schemas');
+
+/**
+ * Sube un archivo a Supabase Storage desde el proceso main usando https.request
+ * nativo (HTTP/1.1). Evita el stack HTTP/2/QUIC del renderer, que falla contra
+ * Cloudflare desde algunas redes con "Failed to fetch".
+ * @returns {Promise<{success: boolean, path?: string, size_bytes?: number, error?: string}>}
+ */
+function uploadToSupabaseStorage({ supabaseUrl, anonKey, bucket, filename, data }) {
+  return new Promise((resolve) => {
+    try {
+      const parsed = new URL(supabaseUrl);
+      const pathname = `/storage/v1/object/${bucket}/${encodeURIComponent(filename)}`;
+      const headers = {
+        'apikey': anonKey,
+        'Authorization': `Bearer ${anonKey}`,
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': data.length,
+        'x-upsert': 'true',
+      };
+      const req = https.request(
+        {
+          hostname: parsed.hostname,
+          port: 443,
+          path: pathname,
+          method: 'POST',
+          headers,
+          // Forzar HTTP/1.1 explícitamente
+          protocol: 'https:',
+          // @ts-ignore — no usar ALPN HTTP/2
+          ALPNProtocols: ['http/1.1'],
+        },
+        (res) => {
+          let body = '';
+          res.on('data', (c) => (body += c));
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              let parsedBody = {};
+              try { parsedBody = JSON.parse(body); } catch { /* ignorar */ }
+              resolve({
+                success: true,
+                path: parsedBody.Key || filename,
+                size_bytes: data.length,
+              });
+            } else {
+              resolve({ success: false, error: `HTTP ${res.statusCode}: ${body.slice(0, 200)}` });
+            }
+          });
+        }
+      );
+      // Timeout generoso: la subida de la BD completa puede tardar minutos
+      // en conexiones lentas (~35 KB/s). 10 minutos.
+      req.setTimeout(600000, () => {
+        req.destroy(new Error('Timeout subiendo a Supabase (10 min)'));
+      });
+      req.on('error', (err) => {
+        resolve({ success: false, error: err.message });
+      });
+      req.write(data);
+      req.end();
+    } catch (err) {
+      resolve({ success: false, error: err.message });
+    }
+  });
+}
+
+/**
+ * Registra un backup en la tabla lw_backups vía la REST API.
+ */
+function insertBackupLog({ supabaseUrl, anonKey, filename, sizeBytes, storagePath }) {
+  return new Promise((resolve) => {
+    try {
+      const parsed = new URL(supabaseUrl);
+      const payload = JSON.stringify({
+        filename,
+        size_bytes: sizeBytes,
+        storage_path: storagePath,
+      });
+      const req = https.request(
+        {
+          hostname: parsed.hostname,
+          port: 443,
+          path: '/rest/v1/lw_backups',
+          method: 'POST',
+          headers: {
+            'apikey': anonKey,
+            'Authorization': `Bearer ${anonKey}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+            'Prefer': 'return=minimal',
+          },
+          protocol: 'https:',
+          ALPNProtocols: ['http/1.1'],
+        },
+        (res) => {
+          res.resume();
+          res.on('end', () => {
+            resolve(res.statusCode >= 200 && res.statusCode < 300);
+          });
+        }
+      );
+      req.setTimeout(60000, () => req.destroy(new Error('Timeout')));
+      req.on('error', () => resolve(false));
+      req.write(payload);
+      req.end();
+    } catch {
+      resolve(false);
+    }
+  });
+}
 
 function register(ipcMain, db) {
   ipcMain.handle('backup:db', async () => {
@@ -69,6 +179,47 @@ function register(ipcMain, db) {
       );
       return { success: true, data: gzipped.toString('base64'), compressed: true };
     } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('backup:upload-cloud', async (_event, { filePath, filename, supabaseUrl, anonKey }) => {
+    try {
+      const bucket = 'lemwriter-backups';
+      // Los backups se suben comprimidos con gzip
+      const storageName = filename.endsWith('.gz') ? filename : `${filename}.gz`;
+      const buffer = fs.readFileSync(filePath);
+      const gzipped = zlib.gzipSync(buffer);
+
+      logger.info(
+        { originalSize: buffer.length, compressedSize: gzipped.length, filename: storageName },
+        'backup:upload-cloud start'
+      );
+
+      const up = await uploadToSupabaseStorage({
+        supabaseUrl,
+        anonKey,
+        bucket,
+        filename: storageName,
+        data: gzipped,
+      });
+      if (!up.success) {
+        logger.error({ err: up.error, handler: 'backup:upload-cloud' }, 'Upload error');
+        return { success: false, error: up.error };
+      }
+
+      const logged = await insertBackupLog({
+        supabaseUrl,
+        anonKey,
+        filename: storageName,
+        sizeBytes: up.size_bytes,
+        storagePath: up.path,
+      });
+
+      logger.info({ filename: storageName, logged }, 'backup:upload-cloud complete');
+      return { success: true, path: up.path, size_bytes: up.size_bytes, logged };
+    } catch (error) {
+      logger.error({ err: error, handler: 'backup:upload-cloud' }, 'Upload error');
       return { success: false, error: error.message };
     }
   });

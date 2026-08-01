@@ -1,52 +1,28 @@
-import { supabase, isSupabaseEnabled } from './supabaseClient.js'
+import { supabase, isSupabaseEnabled, supabaseUrl, supabaseAnonKey } from './supabaseClient.js'
 
 const BACKUPS_BUCKET = 'lemwriter-backups'
 const BACKUPS_TABLE = 'lw_backups'
 
 /**
  * Sube un archivo de respaldo local al bucket de Supabase.
+ * La subida se delega al proceso main (https.request nativo, HTTP/1.1) porque
+ * el fetch del renderer (HTTP/2/QUIC) falla contra Cloudflare desde algunas
+ * redes con "Failed to fetch".
  * @param {string} filePath - Ruta local del archivo .db
  * @param {string} filename - Nombre para el objeto en el bucket
- * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, path?: string, size_bytes?: number, error?: string}>}
  */
 async function uploadBackup(filePath, filename) {
   if (!isSupabaseEnabled()) return { success: false, error: 'offline' }
 
-  // Los backups se suben comprimidos con gzip (backup:read-db lo comprime)
-  const storageName = filename.endsWith('.gz') ? filename : `${filename}.gz`
-
   try {
-    // Leer el archivo como base64 comprimido desde el proceso main vía IPC
-    const result = await window.api.backup.readDb(filePath)
-    if (!result.success) return { success: false, error: result.error || 'error al leer BD' }
-
-    // Convertir base64 a Blob
-    const byteChars = atob(result.data)
-    const byteNums = new Uint8Array(byteChars.length)
-    for (let i = 0; i < byteChars.length; i++) {
-      byteNums[i] = byteChars.charCodeAt(i)
-    }
-    const blob = new Blob([byteNums], { type: 'application/octet-stream' })
-    const file = new File([blob], storageName, { type: 'application/octet-stream' })
-
-    const { data, error } = await supabase.storage
-      .from(BACKUPS_BUCKET)
-      .upload(storageName, file, { upsert: true })
-
-    if (error) return { success: false, error: error.message }
-
-    // Registrar en la tabla lw_backups
-    const { error: logError } = await supabase
-      .from(BACKUPS_TABLE)
-      .insert({
-        filename: storageName,
-        size_bytes: file.size,
-        storage_path: data?.path || storageName,
-      })
-
-    if (logError) console.warn('[cloudBackup] Error en log de backup:', logError.message)
-
-    return { success: true, path: data?.path || storageName }
+    const result = await window.api.backup.uploadCloud({
+      filePath,
+      filename,
+      supabaseUrl,
+      supabaseAnonKey,
+    })
+    return result
   } catch (err) {
     return { success: false, error: err.message }
   }
