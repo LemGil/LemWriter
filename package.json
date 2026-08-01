@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dist:linux": "vite build && electron-builder --linux AppImage"
   },
   "keywords": [
     "escritura",
@@ -22,6 +23,17 @@
   "author": "Marcus Quinn — Ministerio Apostólico LemGil",
   "license": "MIT",
   "build": {
+    "productName": "LemWriter",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "!**/.env*",
+      "!**/*.log"
+    ],
     "win": {
       "icon": "build/icon.ico"
     },

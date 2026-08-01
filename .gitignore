@@ -1,7 +1,11 @@
 node_modules/
 dist/
+release/
 build/
 *.log
+.env
+.env.local
+.env.*.local
 lemwriter.db
 lemwriter.backup.db
 .codegraph/
