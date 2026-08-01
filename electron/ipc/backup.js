@@ -13,7 +13,26 @@ const { validate, BackupRestoreSchema } = require('../schemas/ipc-schemas');
  * Cloudflare desde algunas redes con "Failed to fetch".
  * @returns {Promise<{success: boolean, path?: string, size_bytes?: number, error?: string}>}
  */
-function uploadToSupabaseStorage({ supabaseUrl, anonKey, bucket, filename, data }) {
+/**
+ * Sube un archivo a Supabase Storage desde el proceso main usando https.request
+ * nativo (HTTP/1.1). Implementa reintentos automáticos para errores de red.
+ */
+async function uploadToSupabaseStorage(params, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    const result = await uploadToSupabaseStorageInternal(params);
+    if (result.success) return result;
+
+    // Si es un error de red (ECONNRESET, Timeout, etc.), reintentar
+    logger.warn({ attempt: i + 1, error: result.error }, 'Upload failed, retrying...');
+    if (i < retries - 1) {
+      await new Promise(r => setTimeout(r, 5000 * (i + 1))); // Espera exponencial
+    } else {
+      return result;
+    }
+  }
+}
+
+function uploadToSupabaseStorageInternal({ supabaseUrl, anonKey, bucket, filename, data }) {
   return new Promise((resolve) => {
     try {
       const parsed = new URL(supabaseUrl);
@@ -32,9 +51,7 @@ function uploadToSupabaseStorage({ supabaseUrl, anonKey, bucket, filename, data 
           path: pathname,
           method: 'POST',
           headers,
-          // Forzar HTTP/1.1 explícitamente
           protocol: 'https:',
-          // @ts-ignore — no usar ALPN HTTP/2
           ALPNProtocols: ['http/1.1'],
         },
         (res) => {
@@ -55,8 +72,6 @@ function uploadToSupabaseStorage({ supabaseUrl, anonKey, bucket, filename, data 
           });
         }
       );
-      // Timeout generoso: la subida de la BD completa puede tardar minutos
-      // en conexiones lentas (~35 KB/s). 10 minutos.
       req.setTimeout(600000, () => {
         req.destroy(new Error('Timeout subiendo a Supabase (10 min)'));
       });
@@ -170,12 +185,11 @@ function register(ipcMain, db) {
   ipcMain.handle('backup:read-db', async (_event, filePath) => {
     try {
       const buffer = fs.readFileSync(filePath);
-      // Comprimir con gzip para reducir drásticamente el tamaño a subir a la nube
-      // (la BD completa puede pesar decenas de MB; gzip la reduce ~65%)
-      const gzipped = zlib.gzipSync(buffer);
+      // Comprimir con gzip (nivel 9: máximo) para reducir drásticamente el tamaño
+      const gzipped = zlib.gzipSync(buffer, { level: 9 });
       logger.info(
         { originalSize: buffer.length, compressedSize: gzipped.length },
-        'backup:read-db gzip'
+        'backup:read-db gzip (level 9)'
       );
       return { success: true, data: gzipped.toString('base64'), compressed: true };
     } catch (error) {
