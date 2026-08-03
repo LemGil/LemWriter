@@ -10,7 +10,11 @@
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist:linux": "vite build && electron-builder --linux AppImage"
+    "dist:linux": "vite build && electron-builder --linux AppImage",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:mac": "vite build && electron-builder --mac",
+    "dist:all": "vite build && electron-builder --linux --win --mac",
+    "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [
     "escritura",
