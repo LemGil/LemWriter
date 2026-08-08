@@ -8,12 +8,9 @@
 //   - `.nullable()` for optional fields (null allowed)
 //   - `.optional()` for absent fields (undefined allowed)
 //   - Keep schemas here; import across ipc/ modules.
-
 const { z } = require('zod');
 const logger = require('../logger');
-
 // ── Helpers ─────────────────────────────────────────────────────
-
 /**
  * Wraps safeParse so IPC handlers get a uniform interface.
  * Returns parsed data on success or throws a ZodError-style object.
@@ -30,7 +27,6 @@ function validate(schema, data, label) {
   }
   return result.data;
 }
-
 /**
  * Validates IPC event arguments — supports both single-object and
  * spread-args patterns by wrapping into an object.
@@ -41,16 +37,12 @@ function validateIpcArgs(schema, args, label) {
   }
   return validate(schema, args, label);
 }
-
 // ── Shared primitives ──────────────────────────────────────────
-
 const projectId = z.string().min(1, 'projectId required');
 const sectionId = z.string().min(1, 'sectionId required');
 const resourceId = z.union([z.string(), z.number()]).pipe(z.coerce.number().positive());
 const timestamp = z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}/));
-
 // ── Project ────────────────────────────────────────────────────
-
 const ProjectDataSchema = z.object({
   id: projectId,
   type: z.string().min(1),
@@ -58,7 +50,7 @@ const ProjectDataSchema = z.object({
   template: z.string().nullable().optional(),
   templateName: z.string().nullable().optional(),
   sections: z.array(z.object({
-    id: sectionId,
+    id: sectionId.optional(),
     title: z.string().optional(),
     content: z.string().optional(),
     order_index: z.number().int().nonnegative().optional(),
@@ -68,10 +60,8 @@ const ProjectDataSchema = z.object({
   smartRules: z.record(z.unknown()).optional(),
   panelConfig: z.record(z.unknown()).optional(),
   style: z.string().optional(),
-}).strict();
-
+}).passthrough();
 // ── Export ──────────────────────────────────────────────────────
-
 const ExportStyleSchema = z.object({
   pageSize: z.string().optional(),
   margins: z.object({
@@ -86,19 +76,16 @@ const ExportStyleSchema = z.object({
   showPageNumbers: z.boolean().optional(),
   includeAppendix: z.boolean().optional(),
   includeTableOfContents: z.boolean().optional(),
-}).strict().partial();
-
+}).passthrough().partial();
 const ExportParamsSchema = z.object({
   project: ProjectDataSchema,
   sections: z.array(z.object({
-    id: sectionId, title: z.string(), content: z.string().optional(),
+    id: sectionId.optional(), title: z.string(), content: z.string().optional(),
     order_index: z.number().int().optional(), type: z.string().optional(),
   })),
   style: ExportStyleSchema,
-}).strict();
-
+}).passthrough();
 // ── Documents ──────────────────────────────────────────────────
-
 const DocumentSaveSchema = z.object({
   id: z.number().positive().optional(),
   fileName: z.string().min(1),
@@ -107,24 +94,18 @@ const DocumentSaveSchema = z.object({
   content: z.string().optional(),
   html: z.string().optional(),
 }).strict();
-
 const DocumentIdSchema = z.object({
   id: z.union([z.string(), z.number()]).pipe(z.coerce.number().positive()),
 });
-
 // ── Backup ────────────────────────────────────────────────────
-
 const BackupRestoreSchema = z.object({
   backupPath: z.string().min(1),
 }).strict();
-
 // ── Ollama ─────────────────────────────────────────────────────
-
 const OllamaMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string(),
 });
-
 const OllamaChatSchema = z.object({
   model: z.string().min(1),
   messages: z.array(OllamaMessageSchema).min(1),
@@ -133,7 +114,6 @@ const OllamaChatSchema = z.object({
     maxTokens: z.number().int().positive().optional(),
   }).optional(),
 }).strict();
-
 const OllamaGenerateSchema = z.object({
   model: z.string().min(1),
   prompt: z.string().min(1),
@@ -142,9 +122,7 @@ const OllamaGenerateSchema = z.object({
     maxTokens: z.number().int().positive().optional(),
   }).optional(),
 }).strict();
-
 // ── AI service ──────────────────────────────────────────────────
-
 const AiQuerySchema = z.object({
   prompt: z.string().min(1),
   options: z.object({
@@ -153,7 +131,6 @@ const AiQuerySchema = z.object({
     maxTokens: z.number().int().positive().optional(),
   }).optional(),
 }).strict();
-
 const ExtractReferencesSchema = z.object({
   text: z.string().min(1),
   projectId: projectId,
@@ -161,14 +138,12 @@ const ExtractReferencesSchema = z.object({
     model: z.string().optional(),
   }).optional(),
 }).strict();
-
 const ClassifyResourceSchema = z.object({
   description: z.string().min(1),
   options: z.object({
     model: z.string().optional(),
   }).optional(),
 }).strict();
-
 const ConfirmReferenceSchema = z.object({
   refId: z.number().int().positive().optional(),
   projectId: projectId.optional(),
@@ -180,36 +155,27 @@ const ConfirmReferenceSchema = z.object({
   (data) => data.refId || (data.projectId && data.libro && data.capitulo !== undefined && data.versiculo !== undefined),
   { message: 'Either refId or (projectId+libro+capitulo+versiculo) required' }
 );
-
 // ── Bible ──────────────────────────────────────────────────────
-
 const BibleVerseSchema = z.object({
   libro: z.string().min(1),
   capitulo: z.number().int().positive(),
   versiculo: z.number().int().positive(),
   versiculoFinal: z.number().int().positive().nullable().optional(),
 }).strict();
-
 // ── App / Window state ────────────────────────────────────────
-
 const SaveLastProjectSchema = z.object({
   projectId: projectId,
 }).strict();
-
 // ── DB (low-level — minimal validation) ────────────────────────
-
 const DbQuerySchema = z.tuple([
   z.string().min(1),
   z.array(z.unknown()).optional(),
 ]);
-
 const DbExecuteSchema = z.tuple([
   z.string().min(1),
   z.array(z.unknown()).optional(),
 ]);
-
 // ── Exports ────────────────────────────────────────────────────
-
 module.exports = {
   validate,
   validateIpcArgs,
