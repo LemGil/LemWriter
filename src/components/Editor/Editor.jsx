@@ -139,7 +139,7 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
   } : {}
 
   return (
-    <div ref={editorContainerRef} style={containerStyle} className="p-8 md:p-12 lg:p-16 bg-[#ffffff] text-[#1A1610]">
+    <div ref={editorContainerRef} style={containerStyle} className="p-8 md:p-12 lg:p-16 bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors duration-200">
       <div className="max-w-3xl mx-auto">
         {sectionTitle && (
           <h1 className="text-3xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
