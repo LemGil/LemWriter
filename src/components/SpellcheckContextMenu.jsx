@@ -102,31 +102,12 @@ export function SpellcheckContextMenu({ editor }) {
   return (
     <div
       ref={menuRef}
-      style={{
-        position: 'fixed',
-        top: menu.y,
-        left: menu.x,
-        background: 'white',
-        border: '1px solid rgba(26,58,74,0.15)',
-        borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(26,58,74,0.15)',
-        zIndex: 9999,
-        minWidth: '180px',
-        overflow: 'hidden',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '12px',
-      }}
+      style={{ position: 'fixed', top: menu.y, left: menu.x, zIndex: 9999 }}
+      className="min-w-[180px] overflow-hidden rounded-lg border border-[var(--border-primary)] bg-[var(--card-bg)] font-sans text-xs text-[var(--text-primary)] shadow-lg"
       onClick={e => e.stopPropagation()}
     >
       {/* Palabra con error */}
-      <div style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid rgba(26,58,74,0.08)',
-        color: '#e53e3e',
-        fontWeight: 600,
-        fontSize: '11px',
-        letterSpacing: '0.02em',
-      }}>
+      <div className="border-b border-[var(--border-primary)] px-3 py-2 text-[11px] font-semibold tracking-wide text-red-600">
         &ldquo;{menu.word}&rdquo;
       </div>
 
@@ -136,52 +117,24 @@ export function SpellcheckContextMenu({ editor }) {
           <button
             key={s}
             onClick={() => applyCorrection(s)}
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: '7px 12px',
-              background: 'none',
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              color: '#1A3A4A',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '12px',
-              fontWeight: 500,
-            }}
-            onMouseEnter={e => e.target.style.background = 'rgba(200,167,93,0.1)'}
-            onMouseLeave={e => e.target.style.background = 'none'}
+            className="block w-full cursor-pointer border-none bg-transparent px-3 py-2 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[rgba(200,167,93,0.1)]"
           >
             {s}
           </button>
         ))
       ) : (
-        <div style={{ padding: '7px 12px', color: 'rgba(26,58,74,0.4)', fontStyle: 'italic' }}>
+        <div className="px-3 py-2 italic text-[var(--text-muted)]">
           Sin sugerencias
         </div>
       )}
 
       {/* Separador */}
-      <div style={{ borderTop: '1px solid rgba(26,58,74,0.08)', margin: '4px 0' }} />
+      <div className="my-1 border-t border-[var(--border-primary)]" />
 
       {/* Agregar al diccionario */}
       <button
         onClick={addToDictionary}
-        style={{
-          display: 'block',
-          width: '100%',
-          padding: '7px 12px',
-          background: 'none',
-          border: 'none',
-          textAlign: 'left',
-          cursor: 'pointer',
-          color: '#C8A75D',
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '11px',
-          fontWeight: 600,
-        }}
-        onMouseEnter={e => e.target.style.background = 'rgba(200,167,93,0.08)'}
-        onMouseLeave={e => e.target.style.background = 'none'}
+        className="block w-full cursor-pointer border-none bg-transparent px-3 py-2 text-left text-[11px] font-semibold text-brand-gold hover:bg-[rgba(200,167,93,0.08)]"
       >
         + Agregar al diccionario
       </button>
