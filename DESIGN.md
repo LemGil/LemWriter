@@ -107,6 +107,7 @@ Hover: `hover:shadow-md transition-shadow`
 | Sepia | `sepia` | `#f4ecd8` |
 | Oscuro | `dark` | `#1a1a2e` |
 | Personalizado | `custom` | 19 variables editables |
+| **Dinamismo** | N/A | El editor utiliza `bg-[var(--card-bg)]` y `text-[var(--text-primary)]` para sincronizarse con el tema activo |
 
 Se persisten en localStorage + SQLite. Tema por proyecto via columna `theme`.
 
