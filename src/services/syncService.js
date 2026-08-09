@@ -10,20 +10,40 @@ const TABLES = {
   detected_references: 'lw_referencias_detectadas',
 }
 
+const SUPABASE_COLUMNS = {
+  projects: [
+    'id', 'type', 'title', 'author', 'description', 'subtitle',
+    'style', 'formato', 'theme', 'model_id', 'created_at', 'updated_at'
+  ],
+  sections: [
+    'id', 'project_id', 'title', 'number', 'content', 'status',
+    'summary', 'word_count', 'tags', 'template_type', 'bible_reference',
+    'order_index', 'parent_id', 'type', 'position', 'is_visible',
+    'created_at', 'updated_at'
+  ],
+  resources: ['id', 'title', 'type', 'content', 'created_at', 'updated_at'],
+  project_resources: ['id', 'project_id', 'resource_id'],
+  words: ['id', 'word', 'definition', 'created_at'],
+  detected_references: ['id', 'project_id', 'reference', 'detected_at'],
+}
+
+function filterForSupabase(table, row) {
+  const allowed = SUPABASE_COLUMNS[table]
+  if (!allowed) return { ...row }
+  return Object.fromEntries(
+    Object.entries(row).filter(([key]) => allowed.includes(key))
+  )
+}
+
 /**
  * Convierte una fila de SQLite local a la estructura esperada por Supabase.
- * Las columnas son las mismas, solo se mapea el nombre de la tabla.
+ * Filtra columnas que no existen en Supabase para evitar error 400.
  */
 function mapLocalToRow(table, row) {
   const supabaseTable = TABLES[table]
   if (!supabaseTable) return null
-  return { supabaseTable, data: { ...row } }
+  return { supabaseTable, data: filterForSupabase(table, row) }
 }
-
-/**
- * Sube un solo registro a Supabase (upsert).
- * Retorna { success, error }
- */
 async function upsertRecord(table, row, idField = 'id') {
   if (!isSupabaseEnabled()) return { success: false, error: 'offline' }
 
