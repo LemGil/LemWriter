@@ -31,7 +31,7 @@
   .prose-editor .ProseMirror h4,
   .prose-editor .ProseMirror h5,
   .prose-editor .ProseMirror h6 {
-    color: #1A1610 !important;
+    color: var(--text-primary);
   }
 }
 
@@ -793,7 +793,7 @@ body,
   font-family: var(--font-lectura, 'Crimson Pro', Georgia, serif);
   font-size: 16px;
   line-height: 1.75;
-  color: var(--gris-oscuro, #2E2E2E);
+  color: var(--text-primary);
 }
 
 /* ── 5. Panel de Referencias Bíblicas ── */
