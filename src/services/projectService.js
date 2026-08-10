@@ -397,10 +397,20 @@ export const projectService = {
     return this.createResource(data);
   },
 
-  async searchResources(query = '', type = '') {
+  async searchResources(query = '', type = '', projectId = null) {
     const db = getDb();
     let sql = `SELECT * FROM resources WHERE 1=1`;
     const params = [];
+    // Nota de diseño: `projectId` es opcional y por defecto `null`, lo que
+    // mantiene la búsqueda GLOBAL sin restricción de proyecto (así la usa
+    // Sidebar.jsx intencionalmente). El filtro por proyecto solo existe para
+    // casos futuros que lo necesiten. `resources` no tiene columna
+    // `project_id`: el vínculo vive en la tabla puente `project_resources`,
+    // por lo que el filtro se resuelve vía subconsulta.
+    if (projectId) {
+      sql += ` AND id IN (SELECT resource_id FROM project_resources WHERE project_id = ?)`;
+      params.push(projectId);
+    }
     if (type) {
       sql += ` AND type = ?`;
       params.push(type);
