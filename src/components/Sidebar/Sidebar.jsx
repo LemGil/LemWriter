@@ -38,17 +38,49 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
   const [resourceRefresh, setResourceRefresh] = useState(0)
   const [editingResource, setEditingResource] = useState(null)
   const [editForm, setEditForm] = useState({})
+  const [abortController, setAbortController] = useState(null)
 
   const typeInfo = typeLabels[projectType] || typeLabels.book
   const template = getTemplate(projectType, templateKey)
 
   useEffect(() => {
-    if (!projectId || activeTab !== 'resources') return
+    // Abortar cualquier petición previa si estamos desmontando o cambiando
+    if (!projectId || activeTab !== 'resources') {
+      if (abortController) abortController.abort()
+      setAbortController(null)
+      return
+    }
 
-    if (searchQuery || typeFilter) {
-      projectService.searchResources(searchQuery, typeFilter).then(setResources).catch(() => setResources([]))
-    } else {
-      projectService.getProjectResources(projectId).then(setResources).catch(() => setResources([]))
+    // Abortar petición previa cuando cambian los triggers
+    if (abortController) abortController.abort()
+    const controller = new AbortController()
+    setAbortController(controller)
+
+    const load = async () => {
+      try {
+        const data = (searchQuery || typeFilter)
+          ? await projectService.searchResources(searchQuery, typeFilter)
+          : await projectService.getProjectResources(projectId)
+        if (!controller.signal.aborted) {
+          setResources(data)
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          setResources([])
+        }
+      } finally {
+        // Limpiar controller solo si todavía es el mismo (no reemplazado)
+        if (abortController === controller) {
+          setAbortController(null)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      controller.abort()
+      setAbortController(null)
     }
   }, [projectId, activeTab, resourceRefresh, searchQuery, typeFilter, resourceRefreshKey])
 
@@ -63,11 +95,13 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
   }
 
   const saveEdit = async (r) => {
+    // Obtener el recurso más reciente del estado actual para evitar desactualizaciones
+    const currentResource = resources.find(res => res.id === r.id) || r
     const updates = {}
-    if (editForm.title !== (r.title || '')) updates.title = editForm.title
-    if (editForm.content !== (r.content || '')) updates.content = editForm.content
-    if (editForm.reference !== (r.reference || '')) updates.reference = editForm.reference
-    if (editForm.notes !== (r.notes || '')) updates.notes = editForm.notes
+    if (editForm.title !== (currentResource.title || '')) updates.title = editForm.title
+    if (editForm.content !== (currentResource.content || '')) updates.content = editForm.content
+    if (editForm.reference !== (currentResource.reference || '')) updates.reference = editForm.reference
+    if (editForm.notes !== (currentResource.notes || '')) updates.notes = editForm.notes
     if (Object.keys(updates).length > 0) {
       await projectService.updateResource(r.id, updates)
       setResourceRefresh(k => k + 1)
