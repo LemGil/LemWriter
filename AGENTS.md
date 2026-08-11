@@ -213,5 +213,19 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 | 8 | UI de búsqueda bíblica | ✅ | `BibleVerseLookup.jsx`: modal con selector de libros (AT/NT), capítulo/versículo/rango, búsqueda en BD offline RV1909, inserción en editor, recientes. Icono 📖 en toolbar. |
 | 9 | Búsqueda bíblica en asistente IA | ✅ | `fetchBibleCitations()` parsea referencias en texto y busca en BD offline. Inyecta texto real como contexto de sistema. "Citas bíblicas" quick prompt muestra resultados inline. |
 
+## Deuda técnica documentada (auditoría Sidebar)
+
+| # | Pendiente | Prioridad | Detalle |
+|---|---|---|---|
+| D1 | Refactor `handleAddSection` | baja | 70 líneas de `if/else` por tipo de proyecto con `getTemplate` re-llamado en cada rama (ya existe `template` en scope del componente). Extraer a `getDefaultSectionConfig(projectType, templateKey)`. Puro cleanup, sin bug. |
+| D2 | Heurística de progreso | baja | "Sección completada" = texto sin tags > 100 chars. Placeholders de template pueden contar como completados. UX, no funcional. |
+| D3 | Tests vitest bloqueados por ABI | media | `better-sqlite3.node` compilado contra NODE_MODULE_VERSION 146; Node v22.22.3 requiere 127. Los 44 tests de `projectService.test.js` fallan en `new Database(':memory:')` antes de tocar lógica. Fix: `npm rebuild better-sqlite3`. |
+
+## Resueltos 2026-08 (auditoría Sidebar)
+
+- **Bug 1**: `searchResources(query, type, projectId = null)` — parámetro opcional con filtro vía tabla puente `project_resources`. Búsqueda global de Sidebar se mantiene intencionalmente (nota de diseño en código). Commit `0e40503`.
+- **Bug 2/4/6**: AbortController en `useEffect` de recursos (evita setState en componente desmontado / race en tab switch) + `saveEdit` compara contra estado fresco (`resources.find`) en vez del snapshot del render. Commit `e551f09`.
+- **Falso positivo corregido**: `resourceRefreshKey` en deps de `useEffect` ES su uso (trigger externo), no era bug.
+
 ## Detalle completo
 Ver `.opencode/skills/lemwriter/SKILL.md` para contexto completo del proyecto.
