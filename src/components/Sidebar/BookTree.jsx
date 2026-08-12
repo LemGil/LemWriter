@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Plus } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, ChevronUp } from 'lucide-react'
 
 const sectionIcons = {
   portada: '📖',
@@ -16,7 +16,13 @@ const sectionIcons = {
 
 const getSectionIcon = (type) => sectionIcons[type] || '📄'
 
-const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRenameSection, onDeleteSection }) => {
+const FRONT_TYPES = ['portada', 'dedicatoria', 'prologo', 'introduccion']
+const BACK_TYPES = ['conclusion', 'bibliografia', 'apendice']
+
+const getGroup = (type) =>
+  FRONT_TYPES.includes(type) ? 'front' : type === 'capitulo' ? 'chapters' : BACK_TYPES.includes(type) ? 'back' : 'other'
+
+const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRenameSection, onDeleteSection, onReorderSection }) => {
   const [expandedGroups, setExpandedGroups] = useState({
     front: true,
     chapters: true,
@@ -25,6 +31,8 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef(null)
+  const draggedIdRef = useRef(null)
+  const [dragOverId, setDragOverId] = useState(null)
 
   const handleDelete = async (e, sectionId) => {
     e.stopPropagation()
@@ -42,6 +50,61 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
       inputRef.current.select()
     }
   }, [editingId])
+
+  // Índice global (en `sections`) del elemento DOM bajo el cursor de arrastre.
+  // El orden de los nodos renderizados == orden de `sections`, así que contar
+  // filas cuyo centro queda antes del objetivo da la posición de inserción.
+  const computeDropIndex = (targetEl) => {
+    const midTarget = targetEl.getBoundingClientRect().top + targetEl.offsetHeight / 2
+    let index = 0
+    const rows = document.querySelectorAll('[data-section-row]')
+    for (const row of rows) {
+      if (row === targetEl) break
+      const midRow = row.getBoundingClientRect().top + row.offsetHeight / 2
+      if (midRow < midTarget) index += 1
+    }
+    return index
+  }
+
+  const handleDragStart = (e, section) => {
+    draggedIdRef.current = section.id
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', section.id)
+    // Expandir todos los grupos para que el índice de drop sea estable
+    setExpandedGroups({ front: true, chapters: true, back: true, other: true })
+  }
+
+  const handleDragOver = (e, section) => {
+    if (!draggedIdRef.current || draggedIdRef.current === section.id) return
+    if (getGroup(draggedIdRef.current ? sections.find(s => s.id === draggedIdRef.current)?.type : '') !== getGroup(section.type)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverId(section.id)
+  }
+
+  const handleDrop = (e, section) => {
+    e.preventDefault()
+    const draggedId = draggedIdRef.current
+    draggedIdRef.current = null
+    setDragOverId(null)
+    if (!draggedId || draggedId === section.id) return
+    const targetIndex = computeDropIndex(e.currentTarget)
+    onReorderSection(draggedId, targetIndex)
+  }
+
+  const handleDragEnd = () => {
+    draggedIdRef.current = null
+    setDragOverId(null)
+  }
+
+  const handleMove = (e, section, direction) => {
+    e.stopPropagation()
+    const groupSections = sections.filter(s => getGroup(s.type) === getGroup(section.type))
+    const from = groupSections.findIndex(s => s.id === section.id)
+    const to = from + (direction === 'up' ? -1 : 1)
+    if (to < 0 || to >= groupSections.length) return
+    onReorderSection(section.id, sections.indexOf(groupSections[to]))
+  }
 
   const KNOWN_TYPES = ['portada', 'dedicatoria', 'prologo', 'introduccion', 'capitulo', 'conclusion', 'bibliografia', 'apendice']
   const frontMatter = sections.filter(s => ['portada', 'dedicatoria', 'prologo', 'introduccion'].includes(s.type))
@@ -75,43 +138,76 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
     if (e.key === 'Escape') handleCancelRename()
   }
 
-  const renderSection = (section) => (
-    <div
-      key={section.id}
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelectSection(section.id)}
-      onDoubleClick={() => handleDoubleClick(section)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectSection(section.id) }}
-      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
-        activeSection === section.id
-          ? 'bg-blue-100 text-blue-800 font-medium'
-          : 'text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      <span className="text-base shrink-0">{getSectionIcon(section.type)}</span>
-      {editingId === section.id ? (
-        <input
-          ref={inputRef}
-          value={editValue}
-          onChange={e => setEditValue(e.target.value)}
-          onBlur={() => handleConfirmRename(section.id)}
-          onKeyDown={e => handleKeyDown(e, section.id)}
-          onClick={e => e.stopPropagation()}
-          className="min-w-0 flex-1 text-sm bg-white border border-blue-400 rounded px-1 outline-none"
-        />
-      ) : (
-        <span className="truncate flex-1">{section.title}</span>
-      )}
-      <button
-        onClick={(e) => handleDelete(e, section.id)}
-        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
-        title="Eliminar sección"
+  const renderSection = (section) => {
+    const group = sections.filter(s => getGroup(s.type) === getGroup(section.type))
+    const idx = group.findIndex(s => s.id === section.id)
+    const canUp = idx > 0
+    const canDown = idx < group.length - 1
+    const isDragging = draggedIdRef.current === section.id
+    const isDropTarget = dragOverId === section.id
+
+    return (
+      <div
+        key={section.id}
+        data-section-row
+        role="button"
+        tabIndex={0}
+        draggable
+        onClick={() => onSelectSection(section.id)}
+        onDoubleClick={() => handleDoubleClick(section)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectSection(section.id) }}
+        onDragStart={(e) => handleDragStart(e, section)}
+        onDragOver={(e) => handleDragOver(e, section)}
+        onDrop={(e) => handleDrop(e, section)}
+        onDragEnd={handleDragEnd}
+        className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
+          activeSection === section.id
+            ? 'bg-blue-100 text-blue-800 font-medium'
+            : 'text-gray-700 hover:bg-gray-100'
+        } ${isDragging ? 'opacity-50' : ''} ${isDropTarget ? 'ring-2 ring-blue-400' : ''}`}
       >
-        ✕
-      </button>
-    </div>
-  )
+        <span className="text-base shrink-0">{getSectionIcon(section.type)}</span>
+        {editingId === section.id ? (
+          <input
+            ref={inputRef}
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onBlur={() => handleConfirmRename(section.id)}
+            onKeyDown={e => handleKeyDown(e, section.id)}
+            onClick={e => e.stopPropagation()}
+            className="min-w-0 flex-1 text-sm bg-white border border-blue-400 rounded px-1 outline-none"
+          />
+        ) : (
+          <span className="truncate flex-1">{section.title}</span>
+        )}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => handleMove(e, section, 'up')}
+            disabled={!canUp}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+            title="Subir sección"
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            onClick={(e) => handleMove(e, section, 'down')}
+            disabled={!canDown}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+            title="Bajar sección"
+          >
+            <ChevronDown size={14} />
+          </button>
+          <button
+            onClick={(e) => handleDelete(e, section.id)}
+            className="p-1 text-gray-400 hover:text-red-500 transition-opacity"
+            title="Eliminar sección"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="py-2">

@@ -29,7 +29,7 @@ const typeFilterOptions = [
   })),
 ]
 
-const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSection, onAddSection, onAddSectionFromTemplate, onRenameSection, onDeleteSection, projectTitle, templateKey, onInsertResource, resourceRefreshKey }) => {
+const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSection, onAddSection, onAddSectionFromTemplate, onRenameSection, onDeleteSection, onReorderSection, projectTitle, templateKey, onInsertResource, resourceRefreshKey }) => {
   const collapsed = useAppStore((s) => s.isLeftCollapsed)
   const [activeTab, setActiveTab] = useState('structure')
   const [resources, setResources] = useState([])
@@ -343,6 +343,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onAddChapter={handleAddSection}
                     onRenameSection={onRenameSection}
                     onDeleteSection={onDeleteSection}
+                    onReorderSection={onReorderSection}
                   />
                 )}
                 {(projectType === 'teaching' || projectType === 'ensenanza' || projectType === 'estudio' || projectType === 'study') && (
@@ -353,6 +354,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onAddSection={handleAddSection}
                     onRenameSection={onRenameSection}
                     onDeleteSection={onDeleteSection}
+                    onReorderSection={onReorderSection}
                   />
                 )}
                 {(projectType === 'devotional' || projectType === 'devocional') && (
@@ -363,6 +365,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onAddSection={handleAddSection}
                     onRenameSection={onRenameSection}
                     onDeleteSection={onDeleteSection}
+                    onReorderSection={onReorderSection}
                   />
                 )}
                 {(projectType === 'sermon') && (
@@ -373,6 +376,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onAddSection={handleAddSection}
                     onRenameSection={onRenameSection}
                     onDeleteSection={onDeleteSection}
+                    onReorderSection={onReorderSection}
                     icon={() => <span className="text-base">🎙️</span>}
                     title="Sermones"
                     addLabel="Agregar sermón"
@@ -385,6 +389,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onSelectSection={onSelectSection}
                     onAddSection={handleAddSection}
                     onRenameSection={onRenameSection}
+                    onReorderSection={onReorderSection}
                     icon={() => <span className="text-base">🎬</span>}
                     title="Videos"
                     addLabel="Agregar video"

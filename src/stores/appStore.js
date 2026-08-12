@@ -26,6 +26,23 @@ function loadPersistedBool(key, fallback) {
   }
 }
 
+// Reordena `sections` moviendo la sección `sectionId` al índice `targetIndex`
+// (los elementos intermedios se desplazan). Función pura e inmutable: devuelve
+// un array nuevo; no-op si la sección no existe o `targetIndex` está fuera de
+// rango o coincide con la posición actual. Cubre botones ↑/↓ (índice vecino) y
+// drag & drop (índice objetivo). Exportada para testear sin Electron.
+export function reorderSectionInArray(sections, sectionId, targetIndex) {
+  const from = sections.findIndex((s) => s.id === sectionId);
+  if (from === -1) return sections;
+  if (targetIndex < 0 || targetIndex >= sections.length || targetIndex === from) {
+    return sections;
+  }
+  const next = [...sections];
+  const [moved] = next.splice(from, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+}
+
 const useAppStore = create((set, get) => ({
   // ── Migration / loading ─────────────────────────────────────
   isMigrating: false,
@@ -163,6 +180,15 @@ const useAppStore = create((set, get) => ({
 
   setSections(sections) {
     set({ sections });
+  },
+
+  // Reordena la sección a `targetIndex` dentro del array global. Al mutar
+  // `sections` el auto-save existente persiste el nuevo `order_index` vía
+  // projectService.saveProject → saveSections. No cambia activeSection.
+  moveSectionTo(sectionId, targetIndex) {
+    set((s) => ({
+      sections: reorderSectionInArray(s.sections, sectionId, targetIndex),
+    }));
   },
 
   // ── Theme ────────────────────────────────────────────────────

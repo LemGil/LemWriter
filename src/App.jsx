@@ -198,6 +198,10 @@ function App() {
     store.deleteSection(sectionId);
   }, []);
 
+  const handleReorderSection = useCallback((sectionId, targetIndex) => {
+    store.moveSectionTo(sectionId, targetIndex);
+  }, []);
+
   const handleContentUpdate = useCallback(
     (editor) => {
       const html = editor.getHTML();
@@ -299,6 +303,7 @@ function App() {
                 onAddSectionFromTemplate={handleAddSectionFromTemplate}
                 onRenameSection={handleRenameSection}
                 onDeleteSection={handleDeleteSection}
+                onReorderSection={handleReorderSection}
                 projectTitle={store.projectName}
                 templateKey={store.templateKey}
                 onInsertResource={handleInsertResource}

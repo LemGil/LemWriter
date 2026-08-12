@@ -30,8 +30,8 @@ description: "Task list for reorder-sections feature implementation"
 
 **Purpose**: Verificación del entorno existente. No hay scaffolding: el proyecto ya existe y la columna `sections.order_index` ya está en la BD (sin migración, ver data-model.md).
 
-- [ ] T001 Verificar que `sections.order_index` existe en la BD y que `getProject` ordena por `order_index ASC` (grep en `src/services/projectService.js` y `electron/database.js`)
-- [ ] T002 Confirmar que `@dnd-kit` NO está en `package.json` (decisión de research.md: DnD nativo HTML5, 0 dependencias nuevas)
+- [x] T001 Verificar que `sections.order_index` existe en la BD y que `getProject` ordena por `order_index ASC` (grep en `src/services/projectService.js` y `electron/database.js`)
+- [x] T002 Confirmar que `@dnd-kit` NO está en `package.json` (decisión de research.md: DnD nativo HTML5, 0 dependencias nuevas)
 
 ---
 
@@ -41,10 +41,10 @@ description: "Task list for reorder-sections feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Escribir test unitario de la lógica de reordenamiento en `src/__tests__/reorderSections.test.js` (función pura: mover sección a índice objetivo, límites, no-op en extremos y fuera de rango) — DEBE FALLAR antes de T004
-- [ ] T004 Implementar action `moveSectionTo(sectionId, targetIndex)` en `src/stores/appStore.js` (reordena `store.sections`; no-op si targetIndex fuera de rango o igual a la posición actual)
-- [ ] T005 [P] Wiring en `src/App.jsx`: handler `handleReorderSection(sectionId, targetIndex)` que llama a `store.moveSectionTo`, pasado a `<Sidebar>` como `onReorderSection`
-- [ ] T006 [P] Pasar `onReorderSection` desde `src/components/Sidebar/Sidebar.jsx` a `BookTree`, `TeachingTree` y `DevotionalTree`
+- [x] T003 [P] Escribir test unitario de la lógica de reordenamiento en `src/__tests__/reorderSections.test.js` (función pura: mover sección a índice objetivo, límites, no-op en extremos y fuera de rango) — DEBE FALLAR antes de T004
+- [x] T004 Implementar action `moveSectionTo(sectionId, targetIndex)` en `src/stores/appStore.js` (reordena `store.sections`; no-op si targetIndex fuera de rango o igual a la posición actual)
+- [x] T005 [P] Wiring en `src/App.jsx`: handler `handleReorderSection(sectionId, targetIndex)` que llama a `store.moveSectionTo`, pasado a `<Sidebar>` como `onReorderSection`
+- [x] T006 [P] Pasar `onReorderSection` desde `src/components/Sidebar/Sidebar.jsx` a `BookTree`, `TeachingTree` y `DevotionalTree`
 
 **Checkpoint**: Foundation ready - `moveSectionTo` testeado y disponible en los tres trees
 
@@ -62,10 +62,10 @@ description: "Task list for reorder-sections feature implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/BookTree.jsx`: `draggable` en filas, `onDragStart` (guardar id), `onDragOver` (preventDefault solo sobre secciones del mismo grupo), `onDrop` (calcular índice global objetivo y llamar `onReorderSection`), `onDragEnd` (limpiar estado)
-- [ ] T008 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/TeachingTree.jsx` (mismo patrón; grupo = lista completa)
-- [ ] T009 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/DevotionalTree.jsx` (mismo patrón; grupo = lista completa)
-- [ ] T010 [US1] Añadir feedback visual de arrastre (clase/opacidad en la fila arrastrada y resaltado del objetivo) en los tres trees, sin romper el clic de selección (`onClick` no debe dispararse tras un drop)
+- [x] T007 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/BookTree.jsx`: `draggable` en filas, `onDragStart` (guardar id), `onDragOver` (preventDefault solo sobre secciones del mismo grupo), `onDrop` (calcular índice global objetivo y llamar `onReorderSection`), `onDragEnd` (limpiar estado)
+- [x] T008 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/TeachingTree.jsx` (mismo patrón; grupo = lista completa)
+- [x] T009 [P] [US1] Implementar drag & drop nativo HTML5 en `src/components/Sidebar/DevotionalTree.jsx` (mismo patrón; grupo = lista completa)
+- [x] T010 [US1] Añadir feedback visual de arrastre (clase/opacidad en la fila arrastrada y resaltado del objetivo) en los tres trees, sin romper el clic de selección (`onClick` no debe dispararse tras un drop)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -79,9 +79,9 @@ description: "Task list for reorder-sections feature implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/BookTree.jsx` (iconos lucide-react `ChevronUp`/`ChevronDown`; `onReorderSection(id, idx±1)`; deshabilitados en extremos del grupo; `stopPropagation` para no disparar selección)
-- [ ] T012 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/TeachingTree.jsx` (mismo patrón; extremos = primera/última de la lista)
-- [ ] T013 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/DevotionalTree.jsx` (mismo patrón; extremos = primera/última de la lista)
+- [x] T011 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/BookTree.jsx` (iconos lucide-react `ChevronUp`/`ChevronDown`; `onReorderSection(id, idx±1)`; deshabilitados en extremos del grupo; `stopPropagation` para no disparar selección)
+- [x] T012 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/TeachingTree.jsx` (mismo patrón; extremos = primera/última de la lista)
+- [x] T013 [P] [US2] Añadir botones ↑/↓ en cada fila de `src/components/Sidebar/DevotionalTree.jsx` (mismo patrón; extremos = primera/última de la lista)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -95,8 +95,8 @@ description: "Task list for reorder-sections feature implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Verificar que el auto-save existente persiste el nuevo orden: tras reordenar, `store.sections` mutado dispara `saveCurrentProject` → `saveSections` reasigna `order_index` (validación manual E3; sin cambios de código si el flujo ya funciona)
-- [ ] T015 [US3] Verificar consistencia con exportación: reordenar capítulos y exportar PDF/DOCX/EPUB respetando el nuevo orden (validación manual E5; sin cambios de código si el flujo ya funciona)
+- [x] T014 [US3] Verificar que el auto-save existente persiste el nuevo orden: tras reordenar, `store.sections` mutado dispara `saveCurrentProject` → `saveSections` reasigna `order_index` (validación manual E3; sin cambios de código si el flujo ya funciona)
+- [x] T015 [US3] Verificar consistencia con exportación: reordenar capítulos y exportar PDF/DOCX/EPUB respetando el nuevo orden (validación manual E5; sin cambios de código si el flujo ya funciona)
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -106,9 +106,9 @@ description: "Task list for reorder-sections feature implementation"
 
 **Purpose**: Validación final y documentación
 
-- [ ] T016 [P] Ejecutar `npx vitest run src/__tests__/reorderSections.test.js` y confirmar que pasa (junto con el resto de la suite: `npm test`)
-- [ ] T017 Ejecutar la validación end-to-end de `specs/001-reorder-sections/quickstart.md` (escenarios E1–E6) y documentar resultados
-- [ ] T018 Actualizar `AGENTS.md` (sección de bugs conocidos / funcionalidad) si aplica, y `specs/001-reorder-sections/spec.md` si la validación revela desviaciones
+- [x] T016 [P] Ejecutar `npx vitest run src/__tests__/reorderSections.test.js` y confirmar que pasa (junto con el resto de la suite: `npm test`)
+- [x] T017 Ejecutar la validación end-to-end de `specs/001-reorder-sections/quickstart.md` (escenarios E1–E6) y documentar resultados
+- [x] T018 Actualizar `AGENTS.md` (sección de bugs conocidos / funcionalidad) si aplica, y `specs/001-reorder-sections/spec.md` si la validación revela desviaciones
 
 ---
 
