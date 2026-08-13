@@ -182,13 +182,14 @@ const useAppStore = create((set, get) => ({
     set({ sections });
   },
 
-  // Reordena la sección a `targetIndex` dentro del array global. Al mutar
-  // `sections` el auto-save existente persiste el nuevo `order_index` vía
-  // projectService.saveProject → saveSections. No cambia activeSection.
-  moveSectionTo(sectionId, targetIndex) {
-    set((s) => ({
-      sections: reorderSectionInArray(s.sections, sectionId, targetIndex),
-    }));
+  // Reordena la sección a `targetIndex` dentro del array global, reasigna
+  // order_index según la nueva posición y persiste vía
+  // projectService.saveSections. No cambia activeSection.
+  async moveSectionTo(sectionId, targetIndex) {
+    const reordered = reorderSectionInArray(get().sections, sectionId, targetIndex);
+    const withIndex = reordered.map((s, idx) => ({ ...s, order_index: idx }));
+    set({ sections: withIndex });
+    await projectService.saveSections(withIndex);
   },
 
   // ── Theme ────────────────────────────────────────────────────
