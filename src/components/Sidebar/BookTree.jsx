@@ -172,7 +172,7 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
         onDragOver={(e) => handleDragOver(e, section)}
         onDrop={(e) => handleDrop(e, section)}
         onDragEnd={handleDragEnd}
-        className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 rounded transition-colors group cursor-pointer ${
+        className={`w-full text-left px-2 py-1.5 text-xs flex items-center gap-1 rounded transition-colors group cursor-pointer ${
           activeSection === section.id
             ? 'bg-blue-100 text-blue-800 font-medium'
             : 'text-gray-700 hover:bg-gray-100'
@@ -193,7 +193,7 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
             className="min-w-0 flex-1 text-sm bg-white border border-blue-400 rounded px-1 outline-none"
           />
         ) : (
-          <span className="truncate flex-1">{section.title}</span>
+          <span className="truncate flex-1 min-w-0">{section.title}</span>
         )}
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
