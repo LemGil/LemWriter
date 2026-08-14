@@ -125,6 +125,15 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_resources_title ON resources(title);
     CREATE INDEX IF NOT EXISTS idx_pr_project      ON project_resources(project_id);
     CREATE INDEX IF NOT EXISTS idx_pr_resource     ON project_resources(resource_id);
+    CREATE TABLE IF NOT EXISTS project_relations (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      child_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(parent_id, child_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_prel_parent ON project_relations(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_prel_child  ON project_relations(child_id);
 
     -- detected_references: almacena referencias bíblicas detectadas por IA local
     -- (Ollama / Granite4:3B) para no re-procesar el mismo texto dos veces.

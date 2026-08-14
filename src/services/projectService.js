@@ -491,6 +491,45 @@ export const projectService = {
     );
   },
 
+  async linkProjects(parentId, childId) {
+    const db = getDb();
+    const now = new Date().toISOString();
+    await db.execute(
+      `INSERT OR IGNORE INTO project_relations
+       (parent_id, child_id, created_at)
+       VALUES (?, ?, ?)`,
+      [parentId, childId, now]
+    );
+  },
+  async unlinkProjects(parentId, childId) {
+    const db = getDb();
+    await db.execute(
+      `DELETE FROM project_relations
+       WHERE parent_id = ? AND child_id = ?`,
+      [parentId, childId]
+    );
+  },
+  async getRelations(projectId) {
+    const db = getDb();
+    const origins = await db.query(
+      `SELECT p.id, p.type, p.title
+       FROM projects p
+       JOIN project_relations pr ON p.id = pr.parent_id
+       WHERE pr.child_id = ?
+       ORDER BY p.title ASC`,
+      [projectId],
+    );
+    const derived = await db.query(
+      `SELECT p.id, p.type, p.title
+       FROM projects p
+       JOIN project_relations pr ON p.id = pr.child_id
+       WHERE pr.parent_id = ?
+       ORDER BY p.title ASC`,
+      [projectId],
+    );
+    return { origins, derived };
+  },
+
   async updateResource(resourceId, data) {
     const db = getDb();
     const fields = [];
