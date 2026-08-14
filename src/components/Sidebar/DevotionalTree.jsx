@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Plus, Heart, ChevronUp } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, Heart, ChevronUp, GripVertical } from 'lucide-react'
 
 const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, onDeleteSection, onReorderSection }) => {
   const [expandedGroups, setExpandedGroups] = useState({})
@@ -8,6 +8,7 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
   const inputRef = useRef(null)
   const draggedIdRef = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
+  const [invalidDropTooltip, setInvalidDropTooltip] = useState({ show: false, x: 0, y: 0 })
 
   useEffect(() => {
     if (editingId && inputRef.current) {
@@ -75,6 +76,8 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
 
   const handleDragOver = (e, section) => {
     if (!draggedIdRef.current || draggedIdRef.current === section.id) return
+    // Lista única: todas las secciones pertenecen al mismo grupo.
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOverId(section.id)
@@ -93,6 +96,7 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
   const handleDragEnd = () => {
     draggedIdRef.current = null
     setDragOverId(null)
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
   }
 
   const handleMove = (e, section, direction) => {
@@ -130,6 +134,9 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
             : 'text-gray-700 hover:bg-gray-100'
         } ${isDragging ? 'opacity-50' : ''} ${isDropTarget ? 'ring-2 ring-green-400' : ''}`}
       >
+        <span className="text-base shrink-0 cursor-grab active:cursor-grabbing" title="Arrastrar para reordenar">
+          <GripVertical size={14} className="text-gray-300 hover:text-gray-500" />
+        </span>
         <Heart size={14} className="text-green-600 shrink-0" />
         {editingId === section.id ? (
           <input
@@ -215,6 +222,14 @@ const DevotionalTree = ({ sections, activeSection, onSelectSection, onAddSection
               {sections.map(renderEntry)}
             </div>
           )}
+        </div>
+      )}
+      {invalidDropTooltip.show && (
+        <div
+          className="fixed z-50 px-2 py-1 text-xs bg-gray-900 text-white rounded shadow-lg pointer-events-none"
+          style={{ left: invalidDropTooltip.x, top: invalidDropTooltip.y }}
+        >
+          Solo se puede mover dentro del mismo grupo
         </div>
       )}
     </div>

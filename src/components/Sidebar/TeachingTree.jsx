@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Plus, BookOpen, GraduationCap, ChevronUp } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, BookOpen, GraduationCap, ChevronUp, GripVertical } from 'lucide-react'
 
 const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, onDeleteSection, onReorderSection, icon: HeaderIcon, title = 'Estudio actual', addLabel = 'Agregar clase' }) => {
   const Icon = HeaderIcon || GraduationCap
@@ -9,6 +9,7 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
   const inputRef = useRef(null)
   const draggedIdRef = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
+  const [invalidDropTooltip, setInvalidDropTooltip] = useState({ show: false, x: 0, y: 0 })
 
   const handleDelete = async (e, sectionId) => {
     e.stopPropagation()
@@ -76,6 +77,9 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
 
   const handleDragOver = (e, section) => {
     if (!draggedIdRef.current || draggedIdRef.current === section.id) return
+    // En TeachingTree todas las secciones son del mismo grupo, pero mantenemos
+    // la lógica por consistencia
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOverId(section.id)
@@ -94,6 +98,7 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
   const handleDragEnd = () => {
     draggedIdRef.current = null
     setDragOverId(null)
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
   }
 
   const handleMove = (e, section, direction) => {
@@ -111,7 +116,7 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
     const isDragging = draggedIdRef.current === section.id
     const isDropTarget = dragOverId === section.id
 
-    return (
+return (
       <div
         key={section.id}
         data-section-row
@@ -131,6 +136,9 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
             : 'text-gray-700 hover:bg-gray-100'
         } ${isDragging ? 'opacity-50' : ''} ${isDropTarget ? 'ring-2 ring-yellow-400' : ''}`}
       >
+        <span className="text-base shrink-0 cursor-grab active:cursor-grabbing" title="Arrastrar para reordenar">
+          <GripVertical size={14} className="text-gray-300 hover:text-gray-500" />
+        </span>
         <BookOpen size={14} className="text-yellow-600 shrink-0" />
         {editingId === section.id ? (
           <input
@@ -229,6 +237,14 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
           )}
         </div>
       ))}
+      {invalidDropTooltip.show && (
+        <div
+          className="fixed z-50 px-2 py-1 text-xs bg-gray-900 text-white rounded shadow-lg pointer-events-none"
+          style={{ left: invalidDropTooltip.x, top: invalidDropTooltip.y }}
+        >
+          Solo se puede mover dentro del mismo grupo
+        </div>
+      )}
     </div>
   )
 }

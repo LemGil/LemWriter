@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Plus, ChevronUp } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, ChevronUp, GripVertical } from 'lucide-react'
 
 const sectionIcons = {
   portada: '📖',
@@ -33,6 +33,7 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
   const inputRef = useRef(null)
   const draggedIdRef = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
+  const [invalidDropTooltip, setInvalidDropTooltip] = useState({ show: false, x: 0, y: 0 })
 
   const handleDelete = async (e, sectionId) => {
     e.stopPropagation()
@@ -76,7 +77,17 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
 
   const handleDragOver = (e, section) => {
     if (!draggedIdRef.current || draggedIdRef.current === section.id) return
-    if (getGroup(draggedIdRef.current ? sections.find(s => s.id === draggedIdRef.current)?.type : '') !== getGroup(section.type)) return
+    const draggedSection = sections.find(s => s.id === draggedIdRef.current)
+    if (!draggedSection || getGroup(draggedSection.type) !== getGroup(section.type)) {
+      // Mostrar tooltip de drop inválido
+      setInvalidDropTooltip({
+        show: true,
+        x: e.clientX + 10,
+        y: e.clientY + 10
+      })
+      return
+    }
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOverId(section.id)
@@ -95,6 +106,7 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
   const handleDragEnd = () => {
     draggedIdRef.current = null
     setDragOverId(null)
+    setInvalidDropTooltip({ show: false, x: 0, y: 0 })
   }
 
   const handleMove = (e, section, direction) => {
@@ -166,6 +178,9 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
             : 'text-gray-700 hover:bg-gray-100'
         } ${isDragging ? 'opacity-50' : ''} ${isDropTarget ? 'ring-2 ring-blue-400' : ''}`}
       >
+        <span className="text-base shrink-0 cursor-grab active:cursor-grabbing" title="Arrastrar para reordenar">
+          <GripVertical size={14} className="text-gray-300 hover:text-gray-500" />
+        </span>
         <span className="text-base shrink-0">{getSectionIcon(section.type)}</span>
         {editingId === section.id ? (
           <input
@@ -286,6 +301,14 @@ const BookTree = ({ sections, activeSection, onSelectSection, onAddChapter, onRe
               {otherSections.map(renderSection)}
             </div>
           )}
+        </div>
+      )}
+      {invalidDropTooltip.show && (
+        <div
+          className="fixed z-50 px-2 py-1 text-xs bg-gray-900 text-white rounded shadow-lg pointer-events-none"
+          style={{ left: invalidDropTooltip.x, top: invalidDropTooltip.y }}
+        >
+          Solo se puede mover dentro del mismo grupo
         </div>
       )}
     </div>
