@@ -6,12 +6,15 @@ import DevotionalPanel from "./DevotionalPanel";
 import StudyPanel from "./StudyPanel";
 import SermonPanel from "./SermonPanel";
 import VideoPanel from "./VideoPanel";
+import ProjectRelations from "./ProjectRelations";
 
 const RightPanel = ({ projectType, section, wordCount, project, projectStyle, onSectionUpdate, onStyleChange, onResourceChange }) => {
   const collapsed = useAppStore((s) => s.isRightCollapsed);
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col">
+      {!collapsed && <ProjectRelations project={project} />}
+      <div className="flex-1 min-h-0">
       {(projectType === "book" || projectType === "libro") && (
         <BookPanel section={section} project={project} projectStyle={projectStyle} onSectionUpdate={onSectionUpdate} onStyleChange={onStyleChange} onResourceChange={onResourceChange} collapsed={collapsed} />
       )}
@@ -36,6 +39,7 @@ const RightPanel = ({ projectType, section, wordCount, project, projectStyle, on
       {(projectType === "video") && (
         <VideoPanel section={section} project={project} onResourceChange={onResourceChange} collapsed={collapsed} />
       )}
+      </div>
     </div>
   );
 };

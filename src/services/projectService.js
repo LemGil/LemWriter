@@ -92,6 +92,14 @@ export const projectService = {
     const db = getDb();
     return await db.query(`SELECT * FROM projects ORDER BY updated_at DESC`);
   },
+  async searchProjects(query = '') {
+    const db = getDb();
+    if (!query) return [];
+    return await db.query(
+      `SELECT id, type, title FROM projects WHERE title LIKE ? ORDER BY updated_at DESC LIMIT 10`,
+      [`%${query}%`],
+    );
+  },
 
   async getProjectCountsByType() {
     const db = getDb();
