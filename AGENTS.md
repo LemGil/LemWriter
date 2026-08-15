@@ -227,5 +227,22 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 - **Bug 2/4/6**: AbortController en `useEffect` de recursos (evita setState en componente desmontado / race en tab switch) + `saveEdit` compara contra estado fresco (`resources.find`) en vez del snapshot del render. Commit `e551f09`.
 - **Falso positivo corregido**: `resourceRefreshKey` en deps de `useEffect` ES su uso (trigger externo), no era bug.
 
+
+## Fase 8 — Reordenamiento de Secciones (completada, 2026-08-13/14)
+
+| Subfase | Estado | Detalle |
+|---------|--------|---------|
+| Drag & Drop nativo + botones ↑/↓ | ✅ | `reorderSectionInArray` (lógica pura, 9 tests) + `moveSectionTo` en store. DnD HTML5 sin dependencias nuevas (Principio I). BookTree restringe reorden por grupo; Teaching/Devotional lista completa. Commit `2861cef`. |
+| Persistencia de order_index | ✅ | Bug real detectado en auditoría: `moveSectionTo` reordenaba el array en memoria pero nunca actualizaba `order_index` ni llamaba `saveSections`, perdiendo el orden al recargar. Corregido y verificado manualmente (reorder → cerrar → reabrir → orden persiste). Commit `80044f2`. |
+| Fix crash de arranque (Supabase) | ✅ | `supabaseClient.js` referenciaba `process.env` sin verificar la existencia de `process`, causando `ReferenceError` no capturado y pantalla en blanco en el renderer de Vite/Electron. Fix con `typeof process !== 'undefined'`. Mismo commit `80044f2`. |
+| Drag handle visible + tooltip de drop inválido | ✅ | Icono `GripVertical` (lucide-react) siempre visible en las 3 filas de árbol. Tooltip "Solo se puede mover dentro del mismo grupo" en drops inválidos de BookTree. Generado por Nemotron 3 Ultra, verificado con gate de evidencia real (git diff + grep) antes de aceptar. Commit `ac5c701`. |
+| Ajuste visual de espacio en fila | ✅ | `min-w-0` agregado al título (bug de flexbox, no truncaba bien). Fila comprimida (`px-3→px-2`, `gap-2→gap-1`). Sidebar ensanchado (`w-64→w-72`). Texto reducido (`text-sm→text-xs`). Compensa el espacio que tomó el drag handle. Commit `216fc7b`. |
+| CI/CD — permisos y versión | ✅ | 403 Forbidden al publicar releases: faltaba `permissions: contents: write` en `build.yml`. `package.json` quedado en `1.0.0` mientras los tags avanzaban, causando que cada release sobrescribiera artefactos con el mismo nombre. Corregido con bump explícito de versión antes de taggear. |
+
+**Nota de proceso**: Un primer reporte de auditoría ("Fiscal") declaró el feature completo y APROBADO sin que existiera código alguno en el repo (`git log` vacío sobre master). Esto llevó a añadir un Paso 0 obligatorio al skill `revision-codigo-lemwriter`: ningún veredicto de auditoría es válido sin `git diff --stat` con evidencia real de código antes de evaluar requisitos funcionales.
+
+
+
 ## Detalle completo
+
 Ver `.opencode/skills/lemwriter/SKILL.md` para contexto completo del proyecto.
