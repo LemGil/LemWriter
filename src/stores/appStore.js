@@ -349,7 +349,15 @@ const useAppStore = create((set, get) => ({
   async saveCurrentProject() {
     const data = get().buildProjectData();
     if (data.id) {
-      await projectService.saveProject(data);
+      const idMap = await projectService.saveProject(data);
+      if (idMap && idMap.length > 0) {
+        set((s) => ({
+          sections: s.sections.map((sec) => {
+            const match = idMap.find((m) => m.oldId === sec.id);
+            return match ? { ...sec, id: match.newId } : sec;
+          }),
+        }));
+      }
     }
   },
 

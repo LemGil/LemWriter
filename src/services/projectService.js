@@ -207,7 +207,7 @@ export const projectService = {
       [project.title, new Date().toISOString(), project.id],
     );
     if (project.sections && project.sections.length > 0) {
-      await this.saveSections(
+      return await this.saveSections(
         project.sections.map((s, idx) => ({
           ...s,
           project_id: project.id,
@@ -337,6 +337,7 @@ export const projectService = {
 
   async saveSections(sections) {
     const db = getDb();
+    const idMap = [];
     for (const section of sections) {
       if (section.id && section.id.startsWith("sec-")) {
         const newId = uuidv4();
@@ -353,6 +354,7 @@ export const projectService = {
             new Date().toISOString(),
           ],
         );
+        idMap.push({ oldId: section.id, newId });
       } else if (section.id) {
         await db.execute(
           `UPDATE sections SET title = ?, content = ?, order_index = ?, bible_reference = ?, updated_at = ? WHERE id = ?`,
@@ -367,6 +369,7 @@ export const projectService = {
         );
       }
     }
+    return idMap;
   },
 
   // Recursos globales
