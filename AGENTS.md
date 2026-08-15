@@ -243,6 +243,23 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 
 
 
+## Fase 9 — Linaje de Proyectos (completada, 2026-08-14/15)
+
+| Subfase | Estado | Detalle |
+|---------|--------|---------|
+| Diseño: tabla de relaciones | ✅ | `project_relations` (parent_id/child_id) en vez de columna simple en `projects`, para soportar múltiples orígenes y derivados sin migración futura (ej. un Libro que recopila varios Estudios). Modela el flujo Estudio → Enseñanza → Sermón/Devocional → Video/Libro sin forzar orden rígido. |
+| Schema + servicio | ✅ | Tabla con `ON DELETE CASCADE` e índices en `electron/database.js` (y su copia en el schema de test). Funciones `linkProjects`, `unlinkProjects`, `getRelations` (devuelve `{ origins, derived }`), `searchProjects` en `projectService.js`. 4 tests nuevos (vínculo simple, UNIQUE, múltiples padres, desvinculación). Commit `b9a23c1`. |
+| UI — componente ProjectRelations | ✅ | Sección colapsable "Relacionado con" insertada sobre el despachador de `RightPanel.jsx` (Opción A: un solo componente nuevo, sin tocar los 6 paneles existentes por tipo). Listas "viene de" / "generó" con punto de color por tipo de proyecto, buscador inline para vincular, botón de desvincular por fila. Prototipado primero como mockup visual interactivo y aprobado antes de escribir el código real. Commit `5ecb380`. |
+
+## Bug crítico — Duplicación de secciones en autosave (corregido, 2026-08-15)
+
+| Aspecto | Detalle |
+|---------|---------|
+| Síntoma | Una sección llegó a **307 filas duplicadas** en un proyecto real ("CRISTO EL SEGUNDO ADÁN"), detectado por el usuario durante el trabajo de reordenamiento. |
+| Causa raíz | `saveSections` generaba un `uuidv4()` nuevo cada vez que veía una sección con ID temporal (`sec-<timestamp>`), pero nunca informaba ese ID real de vuelta al store. La sección seguía en memoria con el ID viejo, así que cada autosave posterior la insertaba como fila nueva en vez de actualizarla — no era un bug nuevo del reorder, sino preexistente en el flujo de autosave, que se hizo más visible al agregar más llamadas a `saveSections`. |
+| Fix | `saveSections` ahora devuelve un `idMap` (`oldId` → `newId`). `saveProject` propaga ese retorno. `saveCurrentProject` en el store aplica el mapeo al array de secciones en memoria — el ID cristaliza al real tras el primer guardado, y los autosaves siguientes actualizan en vez de insertar. |
+| Verificación | 44/44 tests pasan. Probado manualmente: proyecto nuevo, sección nueva, múltiples autosaves → 1 sola fila por sección. Datos corruptos del proyecto afectado limpiados manualmente en la BD real tras aplicar el fix. Commit `7a116de`. |
+
 ## Detalle completo
 
 Ver `.opencode/skills/lemwriter/SKILL.md` para contexto completo del proyecto.
