@@ -227,7 +227,6 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 - **Bug 2/4/6**: AbortController en `useEffect` de recursos (evita setState en componente desmontado / race en tab switch) + `saveEdit` compara contra estado fresco (`resources.find`) en vez del snapshot del render. Commit `e551f09`.
 - **Falso positivo corregido**: `resourceRefreshKey` en deps de `useEffect` ES su uso (trigger externo), no era bug.
 
-
 ## Fase 8 — Reordenamiento de Secciones (completada, 2026-08-13/14)
 
 | Subfase | Estado | Detalle |
@@ -241,8 +240,6 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 
 **Nota de proceso**: Un primer reporte de auditoría ("Fiscal") declaró el feature completo y APROBADO sin que existiera código alguno en el repo (`git log` vacío sobre master). Esto llevó a añadir un Paso 0 obligatorio al skill `revision-codigo-lemwriter`: ningún veredicto de auditoría es válido sin `git diff --stat` con evidencia real de código antes de evaluar requisitos funcionales.
 
-
-
 ## Fase 9 — Linaje de Proyectos (completada, 2026-08-14/15)
 
 | Subfase | Estado | Detalle |
@@ -250,6 +247,7 @@ Creada en `electron/database.js` dentro de `initDatabase()` (CREATE TABLE IF NOT
 | Diseño: tabla de relaciones | ✅ | `project_relations` (parent_id/child_id) en vez de columna simple en `projects`, para soportar múltiples orígenes y derivados sin migración futura (ej. un Libro que recopila varios Estudios). Modela el flujo Estudio → Enseñanza → Sermón/Devocional → Video/Libro sin forzar orden rígido. |
 | Schema + servicio | ✅ | Tabla con `ON DELETE CASCADE` e índices en `electron/database.js` (y su copia en el schema de test). Funciones `linkProjects`, `unlinkProjects`, `getRelations` (devuelve `{ origins, derived }`), `searchProjects` en `projectService.js`. 4 tests nuevos (vínculo simple, UNIQUE, múltiples padres, desvinculación). Commit `b9a23c1`. |
 | UI — componente ProjectRelations | ✅ | Sección colapsable "Relacionado con" insertada sobre el despachador de `RightPanel.jsx` (Opción A: un solo componente nuevo, sin tocar los 6 paneles existentes por tipo). Listas "viene de" / "generó" con punto de color por tipo de proyecto, buscador inline para vincular, botón de desvincular por fila. Prototipado primero como mockup visual interactivo y aprobado antes de escribir el código real. Commit `5ecb380`. |
+| Sync con Supabase | ✅ | `syncProjectToCloud` extendido con un 4to parámetro `relationsData`, sube filas a `lw_proyecto_relaciones`. Mapeo agregado en `TABLES`/`SUPABASE_COLUMNS` de `syncService.js`. El autosave en `App.jsx` obtiene las relaciones del proyecto activo (`getRelations`) y las transforma al formato `parent_id`/`child_id` antes de sincronizar. Verificado manualmente en el dashboard de Supabase. Commit `55021e0`. |
 
 ## Bug crítico — Duplicación de secciones en autosave (corregido, 2026-08-15)
 
