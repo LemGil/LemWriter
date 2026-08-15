@@ -118,7 +118,9 @@ function App() {
       if (isSupabaseEnabled() && store.projectId && store.project) {
         try {
           const secciones = store.sections || []
-          await syncService.syncProjectToCloud(store.project, secciones, [])
+          const relaciones = await projectService.getRelations(store.project.id)
+          const relacionesParaSync = [...relaciones.origins.map(o => ({ parent_id: o.id, child_id: store.project.id })), ...relaciones.derived.map(d => ({ parent_id: store.project.id, child_id: d.id }))]
+          await syncService.syncProjectToCloud(store.project, secciones, [], relacionesParaSync)
         } catch (err) {
           console.warn('[sync] Error en sync post-guardado:', err.message)
         }

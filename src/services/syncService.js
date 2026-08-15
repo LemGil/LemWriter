@@ -8,6 +8,7 @@ const TABLES = {
   project_resources: 'lw_proyecto_recursos',
   words: 'lw_palabras_biblicas',
   detected_references: 'lw_referencias_detectadas',
+  project_relations: 'lw_proyecto_relaciones',
 }
 
 const SUPABASE_COLUMNS = {
@@ -23,6 +24,7 @@ const SUPABASE_COLUMNS = {
   ],
   resources: ['id', 'title', 'type', 'content', 'created_at', 'updated_at'],
   project_resources: ['id', 'project_id', 'resource_id'],
+  project_relations: ['id', 'parent_id', 'child_id', 'created_at'],
   words: ['id', 'word', 'definition', 'created_at'],
   detected_references: ['id', 'project_id', 'reference', 'detected_at'],
 }
@@ -91,9 +93,9 @@ async function downloadTable(table, orderBy = 'id') {
 
 /**
  * Sincroniza un proyecto completo hacia la nube.
- * Sube proyecto + secciones + recursos vinculados.
+ * Sube proyecto + secciones + recursos vinculados + relaciones (linaje).
  */
-async function syncProjectToCloud(projectData, sectionsData, resourcesData) {
+async function syncProjectToCloud(projectData, sectionsData, resourcesData, relationsData = []) {
   if (!isSupabaseEnabled()) return { success: false, error: 'offline' }
 
   const errors = []
@@ -112,6 +114,12 @@ async function syncProjectToCloud(projectData, sectionsData, resourcesData) {
   for (const res of resourcesData) {
     const resResult = await upsertRecord('resources', res)
     if (!resResult.success) errors.push(`resources: ${resResult.error}`)
+  }
+
+  // 4. Relaciones del proyecto (linaje: origen/derivado)
+  for (const rel of relationsData) {
+    const relResult = await upsertRecord('project_relations', rel)
+    if (!relResult.success) errors.push(`project_relations: ${relResult.error}`)
   }
 
   return {
