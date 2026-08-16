@@ -9,6 +9,6 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     pool: 'forks',
-    exclude: ['node_modules', 'dist', 'electron'],
+    exclude: ['node_modules', 'dist', 'electron', '.opencode'],
   },
 })
