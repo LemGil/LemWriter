@@ -59,6 +59,15 @@ function App() {
           await projectService.migrateFromLocalStorage();
         }
         store.setRecentProjects(await projectService.getRecentProjects());
+        // Pull desde Supabase al arrancar
+        if (isSupabaseEnabled()) {
+          const db = window.api.db;
+          const { pulled } = await syncService.pullFromCloud(db);
+          if (pulled > 0) {
+            store.setRecentProjects(await projectService.getRecentProjects());
+            console.log(`[sync]  proyectos descargados desde la nube`);
+          }
+        }
         backupService.createBackup().catch(() => {});
         autoBackupService.checkAndRunAutoBackup().catch(() => {});
       } catch (err) {

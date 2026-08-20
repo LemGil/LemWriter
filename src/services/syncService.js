@@ -168,5 +168,103 @@ export const syncService = {
   downloadTable,
   syncProjectToCloud,
   downloadProjectFromCloud,
+  pullFromCloud,
   TABLES: Object.freeze(TABLES),
+}
+
+/**
+ * Descarga desde Supabase los proyectos y secciones que no existen localmente.
+ * Solo inserta — nunca sobreescribe datos locales más recientes.
+ */
+async function pullFromCloud(db) {
+  if (!isSupabaseEnabled()) return { pulled: 0, errors: [] }
+
+  const errors = []
+  let pulled = 0
+
+  try {
+    // 1. Obtener IDs locales
+    const localProjects = await db.query(`SELECT id, updated_at FROM projects`)
+    const localIds = new Set(localProjects.map(p => p.id))
+
+    // 2. Descargar proyectos de Supabase
+    const { data: remoteProjects, error: projErr } = await supabase
+      .from('lw_proyectos')
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    if (projErr) {
+      errors.push(`proyectos: ${projErr.message}`)
+      return { pulled, errors }
+    }
+
+    for (const rp of remoteProjects || []) {
+      try {
+        if (!localIds.has(rp.id)) {
+          // Proyecto nuevo — insertar
+          await db.execute(
+            `INSERT OR IGNORE INTO projects 
+             (id, type, title, author, description, subtitle, style, formato, theme, model_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [rp.id, rp.type, rp.title, rp.author, rp.description, rp.subtitle,
+             rp.style || 'manuscrito_clasico', rp.formato, rp.theme, rp.model_id,
+             rp.created_at, rp.updated_at]
+          )
+          pulled++
+
+          // Descargar secciones de ese proyecto
+          const { data: remoteSections } = await supabase
+            .from('lw_secciones')
+            .select('*')
+            .eq('project_id', rp.id)
+            .order('order_index', { ascending: true })
+
+          for (const rs of remoteSections || []) {
+            await db.execute(
+              `INSERT OR IGNORE INTO sections
+               (id, project_id, title, number, content, status, summary, word_count,
+                tags, template_type, bible_reference, order_index, parent_id, type,
+                position, is_visible, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [rs.id, rs.project_id, rs.title, rs.number, rs.content, rs.status,
+               rs.summary, rs.word_count, rs.tags, rs.template_type, rs.bible_reference,
+               rs.order_index, rs.parent_id, rs.type, rs.position,
+               rs.is_visible ?? 1, rs.created_at, rs.updated_at]
+            )
+          }
+        } else {
+          // Proyecto existe — revisar si Supabase tiene secciones más nuevas
+          const localProject = localProjects.find(p => p.id === rp.id)
+          if (rp.updated_at > localProject.updated_at) {
+            const { data: remoteSections } = await supabase
+              .from('lw_secciones')
+              .select('*')
+              .eq('project_id', rp.id)
+              .order('order_index', { ascending: true })
+
+            for (const rs of remoteSections || []) {
+              // Solo insertar secciones que no existan localmente
+              await db.execute(
+                `INSERT OR IGNORE INTO sections
+                 (id, project_id, title, number, content, status, summary, word_count,
+                  tags, template_type, bible_reference, order_index, parent_id, type,
+                  position, is_visible, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [rs.id, rs.project_id, rs.title, rs.number, rs.content, rs.status,
+                 rs.summary, rs.word_count, rs.tags, rs.template_type, rs.bible_reference,
+                 rs.order_index, rs.parent_id, rs.type, rs.position,
+                 rs.is_visible ?? 1, rs.created_at, rs.updated_at]
+              )
+            }
+          }
+        }
+      } catch (err) {
+        errors.push(`proyecto ${rp.id}: ${err.message}`)
+      }
+    }
+  } catch (err) {
+    errors.push(`pullFromCloud: ${err.message}`)
+  }
+
+  return { pulled, errors }
 }
