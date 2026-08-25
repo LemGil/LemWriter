@@ -22,13 +22,7 @@ jobs:
     steps:
       - name: Create Release if not exists
         run: |
-          gh release view ${{ env.RELEASE_TAG }} \
-            --repo ${{ github.repository }} || \
-          gh release create ${{ env.RELEASE_TAG }} \
-            --repo ${{ github.repository }} \
-            --title "${{ env.RELEASE_TAG }}" \
-            --notes "Release ${{ env.RELEASE_TAG }}" \
-            --draft=false
+          gh release view ${{ env.RELEASE_TAG }} --repo ${{ github.repository }} || gh release create ${{ env.RELEASE_TAG }} --repo ${{ github.repository }} --title "${{ env.RELEASE_TAG }}" --notes "Release ${{ env.RELEASE_TAG }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -68,4 +62,23 @@ jobs:
       - name: Upload to Release
         run: gh release upload ${{ env.RELEASE_TAG }} release/*.exe --clobber
         env:
-       
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-mac:
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx electron-rebuild -f -w better-sqlite3
+      - run: npm run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload to Release
+        run: gh release upload ${{ env.RELEASE_TAG }} release/*.dmg --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
