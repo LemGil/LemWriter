@@ -358,6 +358,18 @@ const useAppStore = create((set, get) => ({
           }),
         }));
       }
+
+      // Exportar a Obsidian en paralelo — fire-and-forget, nunca bloquea el autosave.
+      // Si el disco ALMACEN no está montado o hay cualquier error, solo loguea un warning.
+      if (window.api?.obsidian) {
+        const currentProject = get().project;
+        const currentSections = get().sections;
+        if (currentProject) {
+          window.api.obsidian
+            .exportProject(currentProject, currentSections)
+            .catch((err) => console.warn('[Obsidian Export]', err));
+        }
+      }
     }
   },
 

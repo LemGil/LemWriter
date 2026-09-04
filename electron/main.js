@@ -15,6 +15,7 @@ const aiService = require("./services/aiService.js");
 const windowState = require("./window-state");
 const bibleService = require("./bible-database.js");
 const logger = require("./logger");
+const { exportProjectToObsidian } = require('./services/exportObsidianService');
 
 // IPC module registration
 const ipcDb = require("./ipc/db");
@@ -169,6 +170,16 @@ ipcMain.handle('sections:delete', async (event, sectionId) => {
     return { success: true, changes: result.changes };
   } catch (error) {
     return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('obsidian:exportProject', async (event, { project, sections }) => {
+  try {
+    const filePath = exportProjectToObsidian(project, sections);
+    return { success: true, filePath };
+  } catch (err) {
+    console.error('[IPC obsidian:exportProject]', err);
+    return { success: false, error: err.message };
   }
 });
 

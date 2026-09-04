@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron')
-
 contextBridge.exposeInMainWorld('api', {
   db: {
     query: (sql, params) => ipcRenderer.invoke('db:query', sql, params),
@@ -63,5 +62,9 @@ contextBridge.exposeInMainWorld('api', {
   },
   sections: {
     deleteSection: (sectionId) => ipcRenderer.invoke('sections:delete', sectionId),
-  }
+  },
+  obsidian: {
+    exportProject: (project, sections) =>
+      ipcRenderer.invoke('obsidian:exportProject', { project, sections }),
+  },
 })
