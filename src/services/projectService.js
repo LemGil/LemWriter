@@ -84,7 +84,7 @@ export const projectService = {
   async getRecentProjects() {
     const db = getDb();
     return await db.query(
-      `SELECT * FROM projects ORDER BY updated_at DESC LIMIT 10`,
+      `SELECT * FROM projects ORDER BY updated_at DESC`,
     );
   },
 
