@@ -36,6 +36,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Set version from tag
+        shell: bash
+        run: |
+          VERSION=${RELEASE_TAG#v}
+          npm version $VERSION --no-git-tag-version
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
       - run: npm run dist:linux
         env:
@@ -55,6 +62,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Set version from tag
+        shell: bash
+        run: |
+          VERSION=${RELEASE_TAG#v}
+          npm version $VERSION --no-git-tag-version
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
       - run: npm run dist:win
         env:
@@ -74,6 +88,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Set version from tag
+        shell: bash
+        run: |
+          VERSION=${RELEASE_TAG#v}
+          npm version $VERSION --no-git-tag-version
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
       - run: npm run dist:mac
         env:
