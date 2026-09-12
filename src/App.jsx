@@ -377,6 +377,7 @@ function App() {
               project={store.project}
               sections={store.sections}
               projectStyle={store.projectStyle}
+              currentSection={store.sections.find(s => s.id === store.activeSection) || null}
               onClose={() => store.setShowExport(false)}
             />
           )}

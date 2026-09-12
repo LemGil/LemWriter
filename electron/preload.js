@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('api', {
   confirmSaveComplete: () => ipcRenderer.send('save-complete'),
   cancelClose: () => ipcRenderer.send('save-cancelled'),
   export: {
-    pdf: (project, sections, style) => ipcRenderer.invoke('export:pdf', project, sections, style),
+    pdf: (project, sections, style, sectionId = null) => ipcRenderer.invoke('export:pdf', project, sections, style, sectionId),
     docx: (project, sections, style) => ipcRenderer.invoke('export:docx', project, sections, style),
     epub: (project, sections, style) => ipcRenderer.invoke('export:epub', project, sections, style),
   },

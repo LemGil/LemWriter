@@ -11,11 +11,11 @@ function filterSections(sections) {
 }
 
 export const exportService = {
-  async exportPDF(project, sections, styleKey) {
+  async exportPDF(project, sections, styleKey, sectionId = null) {
     const style = BOOK_STYLES[styleKey]
     if (!style) throw new Error('Estilo no encontrado')
     const filtered = filterSections(sections)
-    const path = await window.api.export.pdf(project, filtered, style)
+    const path = await window.api.export.pdf(project, filtered, style, sectionId)
     return path
   },
 

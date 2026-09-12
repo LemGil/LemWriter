@@ -3,10 +3,10 @@ const logger = require('../logger');
 const { validate, ExportParamsSchema } = require('../schemas/ipc-schemas');
 
 function register(ipcMain, { exportPDF, exportDOCX, exportEPUB }) {
-  ipcMain.handle('export:pdf', async (_event, project, sections, style) => {
+  ipcMain.handle('export:pdf', async (_event, project, sections, style, sectionId = null) => {
     try {
       validate(ExportParamsSchema, { project, sections, style }, 'export:pdf');
-      return await exportPDF(project, sections, style);
+      return await exportPDF(project, sections, style, sectionId);
     } catch (error) {
       if (error.code === 'ZOD_VALIDATION_ERROR') throw error;
       logger.error({ err: error, handler: 'export:pdf' }, 'PDF export error');

@@ -3,7 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, TableOfContents, ImageRun, Table, TableRow, TableCell, LineRuleType } = require('docx')
 
-function buildHtml(project, sections, style) {
+function buildHtml(project, sections, style, isSingleSection = false) {
   const t = style.typography
   const h = style.headings
   const p = style.page
@@ -30,14 +30,15 @@ function buildHtml(project, sections, style) {
       .title-page p { text-indent: 0; }
     </style>`
 
-  const titlePage = project.title ? `
+  const titlePage = !isSingleSection && project.title ? `
     <div class="title-page">
       <h1>${project.title}</h1>
       ${project.author ? `<p>${project.author}</p>` : ''}
     </div>
   ` : ''
 
-  const body = sections.map(s => {
+ const body = sections.map(s => {
+    if (isSingleSection) return s.content || ''
     const title = s.type === 'capitulo'
       ? `<h1>${style.chapter.numberPrefix || ''}${s.title}</h1>`
       : `<h2>${s.title}</h2>`
@@ -106,14 +107,18 @@ function buildHeaderFooterTemplate(conf, project, includePageNumber, numberAlign
   return `<div style="width:100%;font-size:${fontSize};font-family:${font},serif;text-align:${align};padding:0 0.5cm;">${parts.join(' &nbsp; ')}</div>`
 }
 
-async function exportPDF(project, sections, style) {
+async function exportPDF(project, sections, style, sectionId = null) {
+  const sectionsToExport = sectionId
+    ? sections.filter(s => s.id === sectionId)
+    : sections
+
   const { filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: `${project.title || 'documento'}.pdf`,
     filters: [{ name: 'PDF', extensions: ['pdf'] }],
   })
   if (!filePath) return null
 
-  const html = buildHtml(project, sections, style)
+  const html = buildHtml(project, sectionsToExport, style, sectionId !== null)
   const printWin = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
   await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
   await new Promise(r => setTimeout(r, 500))
@@ -186,7 +191,6 @@ function parseInlineContent(html, parentFormat) {
   function cur() { return formatStack[formatStack.length - 1] }
 
   while (remaining.length > 0) {
-    // Opening inline tags
     var openMatch = remaining.match(/^<(strong|b|em|i|u|s|strike|del|sup|sub)(\s[^>]*)?>/i)
     if (openMatch) {
       var tag = openMatch[1].toLowerCase()
@@ -202,7 +206,6 @@ function parseInlineContent(html, parentFormat) {
       continue
     }
 
-    // Closing inline tags
     var closeMatch = remaining.match(/^<\/(strong|b|em|i|u|s|strike|del|sup|sub)>/i)
     if (closeMatch) {
       if (formatStack.length > 1) formatStack.pop()
@@ -210,7 +213,6 @@ function parseInlineContent(html, parentFormat) {
       continue
     }
 
-    // <br>
     var brMatch = remaining.match(/^<br\s*\/?>/i)
     if (brMatch) {
       runs.push(new TextRun(Object.assign({ text: '\n' }, cur())))
@@ -218,14 +220,12 @@ function parseInlineContent(html, parentFormat) {
       continue
     }
 
-    // Skip any other tag
     var anyTag = remaining.match(/^<[^>]+>/)
     if (anyTag) {
       remaining = remaining.slice(anyTag[0].length)
       continue
     }
 
-    // Text until next tag
     var nextTag = remaining.search(/<[^>]+>/)
     var textSegment = nextTag === -1 ? remaining : remaining.slice(0, nextTag)
     if (textSegment) {
@@ -236,8 +236,6 @@ function parseInlineContent(html, parentFormat) {
 
   return runs
 }
-
-// ── Regex helpers using string concatenation (avoids template literal escaping bugs) ──
 
 var BLOCK_TAGS_RE = /^(p|h[1-6]|blockquote|ul|ol|table|div|hr|pre)$/
 
@@ -266,7 +264,6 @@ function extractBlockContent(html, tagName, startIndex) {
     if (nextClose === -1) break
 
     if (nextOpen !== -1 && nextOpen < nextClose) {
-      // Check it's an opening tag, not closing
       if (html.charAt(nextOpen + 1) !== '/') {
         depth++
       }
@@ -280,7 +277,6 @@ function extractBlockContent(html, tagName, startIndex) {
     }
   }
 
-  // Fallback: first closing tag
   var simpleClose = html.indexOf(closeStr, contentStart)
   if (simpleClose !== -1) {
     return html.slice(contentStart, simpleClose)
@@ -290,7 +286,6 @@ function extractBlockContent(html, tagName, startIndex) {
 
 function segmentBlocks(html) {
   var blockTags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'ul', 'ol', 'table', 'div', 'hr', 'pre']
-  // Build ONE master regex: <(p|h1|...|pre)(\s[^>]*)?>
   var masterRegex = new RegExp('<(' + blockTags.join('|') + ')(\\s[^>]*)?>', 'i')
   var segments = []
   var remaining = html
@@ -307,7 +302,6 @@ function segmentBlocks(html) {
     var matchIndex = match.index
     var tagName = match[1].toLowerCase()
 
-    // Text before this tag
     if (matchIndex > 0) {
       var before = remaining.slice(0, matchIndex)
       if (before.trim()) {
@@ -599,7 +593,6 @@ async function exportDOCX(project, sections, style) {
 
   var children = []
 
-  // Portada
   if (project.title) {
     children.push(
       new Paragraph({
@@ -620,7 +613,6 @@ async function exportDOCX(project, sections, style) {
     children.push(new Paragraph({ children: [], pageBreakBefore: true }))
   }
 
-  // Section content
   for (var i = 0; i < sections.length; i++) {
     var s = sections[i]
 
@@ -663,7 +655,6 @@ async function exportDOCX(project, sections, style) {
     }
   }
 
-  // Footnotes
   var footnotes = buildFootnoteSection(sections)
   for (var k = 0; k < footnotes.length; k++) {
     children.push(footnotes[k])

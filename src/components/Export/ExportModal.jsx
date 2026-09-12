@@ -11,8 +11,9 @@ const formats = [
   { id: 'epub', label: 'EPUB', desc: 'Formato de libro electrónico estándar.', icon: BookMarked },
 ]
 
-const ExportModal = ({ project, sections, projectStyle, onClose }) => {
+const ExportModal = ({ project, sections, currentSection, projectStyle, onClose }) => {
   const [selectedFormat, setSelectedFormat] = useState('pdf')
+  const [scope, setScope] = useState('full')
   const [exporting, setExporting] = useState(false)
   const [done, setDone] = useState(null)
 
@@ -34,8 +35,19 @@ const ExportModal = ({ project, sections, projectStyle, onClose }) => {
         if (resourcesSection) extraSections.push(resourcesSection)
       }
 
-      const fullSections = [...sections, ...extraSections]
-      const path = await exportService[`export${selectedFormat.toUpperCase()}`](project, fullSections, projectStyle)
+      // Para PDF con scope 'chapter', solo la sección activa (sin apéndices)
+      const sectionId = selectedFormat === 'pdf' && scope === 'chapter' && currentSection?.id
+        ? currentSection.id
+        : null
+
+      const fullSections = sectionId ? sections : [...sections, ...extraSections]
+
+      const path = await exportService[`export${selectedFormat.toUpperCase()}`](
+        project,
+        fullSections,
+        projectStyle,
+        sectionId  // solo exportPDF lo usa; DOCX y EPUB lo ignoran
+      )
       if (path) setDone(path)
     } catch (err) {
       console.error('Export error:', err)
@@ -79,6 +91,39 @@ const ExportModal = ({ project, sections, projectStyle, onClose }) => {
           </div>
 
           <p className="text-xs text-brand-ink-3">{formats.find(f => f.id === selectedFormat)?.desc}</p>
+
+          {/* Selector de alcance — solo visible para PDF y cuando hay sección activa */}
+          {selectedFormat === 'pdf' && currentSection && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-brand-ink">¿Qué exportar?</p>
+              <div className="space-y-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scope"
+                    value="full"
+                    checked={scope === 'full'}
+                    onChange={() => setScope('full')}
+                    className="accent-brand-gold"
+                  />
+                  <span className="text-xs text-brand-ink">Todo el proyecto</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scope"
+                    value="chapter"
+                    checked={scope === 'chapter'}
+                    onChange={() => setScope('chapter')}
+                    className="accent-brand-gold"
+                  />
+                  <span className="text-xs text-brand-ink">
+                    Solo esta sección — <span className="text-brand-ink-3 italic">{currentSection.title}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="text-xs text-brand-ink-3 bg-brand-gold-pale/50 rounded p-2 space-y-0.5">
             <p><span className="font-medium">Estilo:</span> {BOOK_STYLES[projectStyle]?.label || projectStyle}</p>
