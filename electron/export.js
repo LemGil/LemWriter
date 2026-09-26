@@ -197,6 +197,20 @@ function parseImgAttributes(tagHtml) {
   return attrs
 }
 
+// Detecta el tipo real por firma binaria: la extensión o el MIME declarado
+// pueden mentir (p. ej. un webp renombrado a .jpg).
+function sniffImageType(buffer) {
+  if (!buffer || buffer.length < 12) return null
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'jpg'
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return 'png'
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) return 'gif'
+  if (buffer[0] === 0x42 && buffer[1] === 0x4D) return 'bmp'
+  if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp'
+  var head = buffer.toString('utf8', 0, 120).replace(/^\uFEFF/, '').trim()
+  if (/^<\?xml/i.test(head) || /^<svg[\s>]/i.test(head)) return 'svg'
+  return null
+}
+
 // Carga los bytes de una imagen desde data URI, file:// o ruta local.
 // Devuelve { buffer, type } con type en png|jpg|gif|bmp, o null si no se pudo.
 function loadImageBuffer(src) {
@@ -206,6 +220,8 @@ function loadImageBuffer(src) {
     var dataUri = src.match(/^data:(image\/([\w+.-]+));base64,([\s\S]+)$/i)
     if (dataUri) {
       type = dataUri[2].toLowerCase()
+      if (type === 'jpeg') type = 'jpg'
+      if (type === 'svg+xml') type = 'svg'
       buffer = Buffer.from(dataUri[3].replace(/\s+/g, ''), 'base64')
     } else if (/^https?:\/\//i.test(src)) {
       console.warn('[export:docx] imagen remota omitida (no disponible offline):', src.slice(0, 80))
@@ -224,6 +240,12 @@ function loadImageBuffer(src) {
       type = ext === 'jpeg' ? 'jpg' : ext
     }
     if (!buffer || !buffer.length) return null
+    // El tipo declarado puede mentir: verificar firma binaria real
+    var realType = sniffImageType(buffer)
+    if (realType && realType !== type) {
+      console.warn('[export:docx] tipo real de imagen:', realType, '(declarado: ' + type + ')')
+      type = realType
+    }
     // NOTA (2026-09-26): nativeImage de Electron NO decodifica webp/svg
     // (verificado: createFromBuffer devuelve imagen vacía). El renderer las
     // convierte a PNG con canvas antes de exportar (exportService.js).

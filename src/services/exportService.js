@@ -34,25 +34,48 @@ function webpDataUriToPng(dataUri) {
   })
 }
 
-async function convertWebpImages(html) {
-  if (!html || html.indexOf('data:image/webp') === -1) return html
-  const matches = html.match(/data:image\/webp;base64,[^"' \t\n>]+/gi) || []
+// Detecta el tipo real de un data URI por firma binaria (los primeros bytes
+// decodificados). El MIME declarado puede mentir: p. ej. un webp guardado
+// como .jpg llega como data:image/jpeg aunque sus bytes sean webp.
+function sniffDataUriType(dataUri) {
+  try {
+    const comma = dataUri.indexOf(',')
+    if (comma === -1) return null
+    const bin = atob(dataUri.slice(comma + 1, comma + 45))
+    const c = (i) => bin.charCodeAt(i)
+    if (c(0) === 0xFF && c(1) === 0xD8 && c(2) === 0xFF) return 'jpg'
+    if (bin.slice(0, 4) === '\x89PNG') return 'png'
+    if (bin.slice(0, 3) === 'GIF') return 'gif'
+    if (bin.slice(0, 2) === 'BM') return 'bmp'
+    if (bin.slice(0, 4) === 'RIFF' && bin.slice(8, 12) === 'WEBP') return 'webp'
+  } catch (e) { /* ignorar */ }
+  return null
+}
+
+// Convierte a PNG las imágenes que Word/Electron no soportan (webp),
+// aunque vengan declaradas con otro MIME (p. ej. webp renombrado a .jpg).
+async function convertUnsupportedImages(html) {
+  if (!html || html.indexOf('data:image/') === -1) return html
+  const matches = html.match(/data:image\/[\w+.-]+;base64,[^"' \t\n>]+/gi) || []
   const seen = {}
   let out = html
   for (const src of matches) {
     if (seen[src]) continue
     seen[src] = true
-    const png = await webpDataUriToPng(src)
-    if (png && png !== src) out = out.split(src).join(png)
+    if (sniffDataUriType(src) !== 'webp') continue
+    // Reescribir el MIME al tipo real para que Chromium lo decodifique
+    const webpUri = src.replace(/^data:image\/[\w+.-]+;/i, 'data:image/webp;')
+    const png = await webpDataUriToPng(webpUri)
+    if (png && png !== webpUri) out = out.split(src).join(png)
   }
   return out
 }
 
-async function prepareSections(sections, convertWebp = false) {
+async function prepareSections(sections, convertImages = false) {
   let list = sections || []
-  if (convertWebp) {
+  if (convertImages) {
     list = await Promise.all(
-      list.map(async (s) => ({ ...s, content: await convertWebpImages(s.content) }))
+      list.map(async (s) => ({ ...s, content: await convertUnsupportedImages(s.content) }))
     )
   }
   return filterSections(list)
@@ -90,4 +113,4 @@ export const exportService = {
 }
 
 // Exportados para pruebas
-export { convertWebpImages, webpDataUriToPng }
+export { convertUnsupportedImages, webpDataUriToPng, sniffDataUriType }
