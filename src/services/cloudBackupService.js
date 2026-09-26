@@ -20,7 +20,7 @@ async function uploadBackup(filePath, filename) {
       filePath,
       filename,
       supabaseUrl,
-      supabaseAnonKey,
+      anonKey: supabaseAnonKey,
     })
     return result
   } catch (err) {
