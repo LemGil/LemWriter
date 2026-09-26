@@ -224,15 +224,12 @@ function loadImageBuffer(src) {
       type = ext === 'jpeg' ? 'jpg' : ext
     }
     if (!buffer || !buffer.length) return null
-    // Word no acepta webp/svg: convertir a PNG vía nativeImage de Electron
+    // NOTA (2026-09-26): nativeImage de Electron NO decodifica webp/svg
+    // (verificado: createFromBuffer devuelve imagen vacía). El renderer las
+    // convierte a PNG con canvas antes de exportar (exportService.js).
     if (type === 'webp' || type === 'svg' || type === 'svg+xml') {
-      var converted = nativeImage.createFromBuffer(buffer)
-      if (converted.isEmpty()) {
-        console.warn('[export:docx] no se pudo convertir imagen tipo:', type)
-        return null
-      }
-      buffer = converted.toPNG()
-      type = 'png'
+      console.warn('[export:docx] imagen', type, 'sin convertir a PNG — omitida')
+      return null
     }
     if (['png', 'jpg', 'gif', 'bmp'].indexOf(type) === -1) {
       console.warn('[export:docx] formato de imagen no soportado:', type)
