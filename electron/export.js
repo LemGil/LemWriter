@@ -1,4 +1,4 @@
-const { BrowserWindow, dialog } = require('electron')
+const { BrowserWindow, dialog, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, TableOfContents, ImageRun, Table, TableRow, TableCell, LineRuleType } = require('docx')
@@ -182,6 +182,109 @@ function cssSizeToHalfPoints(cssSize, fallback) {
   return fallback
 }
 
+// ── Imágenes en DOCX ──────────────────────────────────────────
+// Ancho máximo de imagen en píxeles (≈ ancho útil de carta con márgenes de 1")
+var DOCX_IMAGE_MAX_WIDTH = 600
+
+function parseImgAttributes(tagHtml) {
+  var attrs = {}
+  var re = /(\w+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/g
+  var m
+  while ((m = re.exec(tagHtml)) !== null) {
+    var val = m[3] !== undefined ? m[3] : (m[4] !== undefined ? m[4] : m[5])
+    attrs[m[1].toLowerCase()] = val
+  }
+  return attrs
+}
+
+// Carga los bytes de una imagen desde data URI, file:// o ruta local.
+// Devuelve { buffer, type } con type en png|jpg|gif|bmp, o null si no se pudo.
+function loadImageBuffer(src) {
+  try {
+    var buffer = null
+    var type = null
+    var dataUri = src.match(/^data:(image\/([\w+.-]+));base64,([\s\S]+)$/i)
+    if (dataUri) {
+      type = dataUri[2].toLowerCase()
+      buffer = Buffer.from(dataUri[3].replace(/\s+/g, ''), 'base64')
+    } else if (/^https?:\/\//i.test(src)) {
+      console.warn('[export:docx] imagen remota omitida (no disponible offline):', src.slice(0, 80))
+      return null
+    } else {
+      var p = src
+      if (p.indexOf('file://') === 0) p = p.replace(/^file:\/\/\/?/, '')
+      try { p = decodeURI(p) } catch (e) { /* usar tal cual */ }
+      if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1) // file:///C:/... -> C:/...
+      if (!p || !fs.existsSync(p)) {
+        console.warn('[export:docx] imagen no encontrada:', String(src).slice(0, 120))
+        return null
+      }
+      buffer = fs.readFileSync(p)
+      var ext = path.extname(p).toLowerCase().replace(/^\./, '')
+      type = ext === 'jpeg' ? 'jpg' : ext
+    }
+    if (!buffer || !buffer.length) return null
+    // Word no acepta webp/svg: convertir a PNG vía nativeImage de Electron
+    if (type === 'webp' || type === 'svg' || type === 'svg+xml') {
+      var converted = nativeImage.createFromBuffer(buffer)
+      if (converted.isEmpty()) {
+        console.warn('[export:docx] no se pudo convertir imagen tipo:', type)
+        return null
+      }
+      buffer = converted.toPNG()
+      type = 'png'
+    }
+    if (['png', 'jpg', 'gif', 'bmp'].indexOf(type) === -1) {
+      console.warn('[export:docx] formato de imagen no soportado:', type)
+      return null
+    }
+    return { buffer: buffer, type: type }
+  } catch (e) {
+    console.warn('[export:docx] error cargando imagen:', e.message)
+    return null
+  }
+}
+
+// Convierte una etiqueta <img ...> en un ImageRun de docx (o null si falla).
+function imageRunFromTag(tagHtml) {
+  var attrs = parseImgAttributes(tagHtml)
+  var src = attrs.src || ''
+  if (!src) return null
+  src = decodeHtmlEntities(src)
+  var loaded = loadImageBuffer(src)
+  if (!loaded) return null
+  var size = { width: 0, height: 0 }
+  try {
+    size = nativeImage.createFromBuffer(loaded.buffer).getSize()
+  } catch (e) { /* sin dimensiones */ }
+  if (!size.width || !size.height) {
+    console.warn('[export:docx] no se pudieron leer dimensiones de la imagen')
+    return null
+  }
+  var attrW = parseInt(attrs.width, 10)
+  var attrH = parseInt(attrs.height, 10)
+  var w = !isNaN(attrW) && attrW > 0 ? attrW : size.width
+  var h = !isNaN(attrH) && attrH > 0 ? attrH : Math.round(size.height * (w / size.width))
+  if (w > DOCX_IMAGE_MAX_WIDTH) {
+    h = Math.round(h * (DOCX_IMAGE_MAX_WIDTH / w))
+    w = DOCX_IMAGE_MAX_WIDTH
+  }
+  return new ImageRun({
+    data: loaded.buffer,
+    transformation: { width: w, height: h },
+    type: loaded.type,
+  })
+}
+
+function isImageOnly(runs) {
+  return runs.length === 1 && runs[0] instanceof ImageRun
+}
+
+// Párrafo centrado sin sangría para imágenes independientes
+function imageParagraphOpts() {
+  return { alignment: AlignmentType.CENTER, indent: {}, before: 200, after: 200 }
+}
+
 function parseInlineContent(html, parentFormat) {
   const runs = []
   const fmt = Object.assign({ bold: false, italics: false, underline: false, strike: false, superscript: false, subscript: false }, parentFormat || {})
@@ -217,6 +320,18 @@ function parseInlineContent(html, parentFormat) {
     if (brMatch) {
       runs.push(new TextRun(Object.assign({ text: '\n' }, cur())))
       remaining = remaining.slice(brMatch[0].length)
+      continue
+    }
+
+    var imgMatch = remaining.match(/^<img(\s[^>]*)?\/?>/i)
+    if (imgMatch) {
+      var imgRun = imageRunFromTag(imgMatch[0])
+      if (imgRun) {
+        runs.push(imgRun)
+      } else {
+        runs.push(new TextRun(Object.assign({ text: '[Imagen no disponible]', italics: true, color: '999999' }, cur())))
+      }
+      remaining = remaining.slice(imgMatch[0].length)
       continue
     }
 
@@ -406,7 +521,8 @@ function htmlToDocxElements(html, style) {
     if (seg.type === 'text') {
       var trimmed = seg.content.trim()
       if (!trimmed) continue
-      addParagraph(parseInlineContent(trimmed))
+      var textRuns = parseInlineContent(trimmed)
+      addParagraph(textRuns, isImageOnly(textRuns) ? imageParagraphOpts() : undefined)
       continue
     }
 
@@ -420,9 +536,12 @@ function htmlToDocxElements(html, style) {
     var inner = seg.content
 
     if (tag === 'p') {
-      var textContent = inner.replace(/<[^>]*>/g, '').trim()
-      if (!textContent) continue
-      addParagraph(parseInlineContent(inner), { after: 120 })
+      var pRuns = parseInlineContent(inner)
+      var pOnlyImage = isImageOnly(pRuns)
+      // Un párrafo sin texto visible puede contener runs (placeholder de imagen
+      // no disponible, saltos de línea): solo se omite si no produjo ningún run.
+      if (pRuns.length === 0) continue
+      addParagraph(pRuns, pOnlyImage ? imageParagraphOpts() : { after: 120 })
     }
     else if (/^h[1-6]$/.test(tag)) {
       var level = parseInt(tag[1])
@@ -740,4 +859,4 @@ function setMainWindow(win) {
   mainWindow = win
 }
 
-module.exports = { exportPDF, exportDOCX, exportEPUB, setMainWindow, buildHtml }
+module.exports = { exportPDF, exportDOCX, exportEPUB, setMainWindow, buildHtml, htmlToDocxElements }
