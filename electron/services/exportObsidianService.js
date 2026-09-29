@@ -19,14 +19,63 @@ const path = require('path');
 // ─── Configuración ────────────────────────────────────────────────────────────
 
 // Ruta base del vault de Obsidian (raw/ es donde LemGil escribe, el agente no toca)
-// Se puede sobreescribir vía variable de entorno LEMWRITER_OBSIDIAN_RAW
+// Orden de prioridad:
+//   1. Ruta elegida en Configuración (tabla settings, clave 'obsidian_raw_path')
+//   2. Variable de entorno LEMWRITER_OBSIDIAN_RAW
+//   3. Ruta por defecto
 const DEFAULT_OBSIDIAN_RAW = path.join(
   '/media/lemgil/ALMACEN/MinisterioWiki',
   'raw'
 );
 
-function getObsidianRawPath() {
+const SETTINGS_KEY = 'obsidian_raw_path';
+
+// Carpetas de categoría del vault (coinciden con TYPE_TO_FOLDER + 'otros')
+const OBSIDIAN_FOLDERS = [
+  'sermones',
+  'ensenanzas',
+  'devocionales',
+  'estudios',
+  'videos',
+  'libros',
+  'otros',
+];
+
+function getObsidianRawPath(db) {
+  try {
+    if (db) {
+      const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(SETTINGS_KEY);
+      if (row && row.value) return row.value;
+    }
+  } catch (err) {
+    // Instalaciones sin la tabla settings migrada — usar respaldo
+  }
   return process.env.LEMWRITER_OBSIDIAN_RAW || DEFAULT_OBSIDIAN_RAW;
+}
+
+function setObsidianRawPath(db, rawPath) {
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(SETTINGS_KEY, rawPath);
+  return rawPath;
+}
+
+/**
+ * Crea la carpeta base y las 7 carpetas de categoría si no existen.
+ * @returns { base, creadas } — creadas: carpetas que no existían.
+ */
+function ensureObsidianStructure(db) {
+  const base = getObsidianRawPath(db);
+  if (!fs.existsSync(base)) {
+    fs.mkdirSync(base, { recursive: true });
+  }
+  const creadas = [];
+  for (const folder of OBSIDIAN_FOLDERS) {
+    const folderPath = path.join(base, folder);
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+      creadas.push(folder);
+    }
+  }
+  return { base, creadas };
 }
 
 // ─── Mapeo de tipos de proyecto a subcarpetas ─────────────────────────────────
@@ -209,7 +258,7 @@ function buildMarkdown(project, sections) {
  * @param {Array}  sections  - Array de secciones del proyecto (title, content, order_index)
  * @returns {string|null}    - Ruta del archivo generado, o null si hubo un error no crítico
  */
-function exportProjectToObsidian(project, sections) {
+function exportProjectToObsidian(project, sections, db) {
   try {
     const type = normalizeType(project.type);
     if (!type) {
@@ -217,7 +266,7 @@ function exportProjectToObsidian(project, sections) {
       return null;
     }
 
-    const rawBase = getObsidianRawPath();
+    const rawBase = getObsidianRawPath(db);
 
     // Verificar que el disco/carpeta base existe
     if (!fs.existsSync(rawBase)) {
@@ -248,4 +297,31 @@ function exportProjectToObsidian(project, sections) {
   }
 }
 
-module.exports = { exportProjectToObsidian };
+/**
+ * Exporta todos los proyectos de la BD al vault de Obsidian.
+ * @returns { exportados, omitidos, total, base }
+ */
+function exportAllProjectsToObsidian(db) {
+  const { base } = ensureObsidianStructure(db);
+  const projects = db.prepare('SELECT id, type, title, created_at FROM projects').all();
+  let exportados = 0;
+  const omitidos = [];
+  for (const project of projects) {
+    const sections = db
+      .prepare('SELECT title, content, order_index FROM sections WHERE project_id = ? ORDER BY order_index')
+      .all(project.id);
+    const filePath = exportProjectToObsidian(project, sections, db);
+    if (filePath) exportados++;
+    else omitidos.push(project.title || project.id);
+  }
+  return { exportados, omitidos, total: projects.length, base };
+}
+
+module.exports = {
+  exportProjectToObsidian,
+  exportAllProjectsToObsidian,
+  getObsidianRawPath,
+  setObsidianRawPath,
+  ensureObsidianStructure,
+  OBSIDIAN_FOLDERS,
+};

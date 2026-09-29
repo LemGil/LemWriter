@@ -97,6 +97,9 @@ const applyCustomColors = (colors) => {
 const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
   const [backups, setBackups] = useState([])
   const [backupStatus, setBackupStatus] = useState('')
+  const [obsidianPath, setObsidianPath] = useState('')
+  const [obsidianMsg, setObsidianMsg] = useState(null)
+  const [obsidianBusy, setObsidianBusy] = useState(false)
   const [projectTheme, setProjectTheme] = useState(null)
   const [customColors, setCustomColors] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -112,6 +115,10 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
           projectService.getCustomTheme(),
         ])
         setBackups(list || [])
+        if (window.api?.obsidian) {
+          const rp = await window.api.obsidian.getPath()
+          if (rp.success) setObsidianPath(rp.path)
+        }
         if (pt) setProjectTheme(pt)
         if (savedCustom) {
           setCustomColors(savedCustom)
@@ -147,6 +154,73 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
       setBackupStatus('✗ Error')
     }
     setTimeout(() => setBackupStatus(''), 3000)
+  }
+
+  /* ─── Obsidian ─── */
+  const handlePickObsidianFolder = async () => {
+    if (!window.api?.obsidian) return
+    setObsidianBusy(true)
+    setObsidianMsg(null)
+    try {
+      const r = await window.api.obsidian.pickFolder()
+      if (r.success && !r.canceled) {
+        setObsidianPath(r.path)
+        setObsidianMsg({ type: 'ok', text: 'Carpeta actualizada' })
+      }
+    } catch (err) {
+      setObsidianMsg({ type: 'error', text: 'Error: ' + err.message })
+    } finally {
+      setObsidianBusy(false)
+      setTimeout(() => setObsidianMsg(null), 4000)
+    }
+  }
+
+  const handleEnsureObsidianStructure = async () => {
+    if (!window.api?.obsidian) return
+    setObsidianBusy(true)
+    setObsidianMsg(null)
+    try {
+      const r = await window.api.obsidian.ensureStructure()
+      if (r.success) {
+        setObsidianMsg({
+          type: 'ok',
+          text: r.creadas.length > 0
+            ? `Carpetas creadas: ${r.creadas.join(', ')}`
+            : 'La estructura de carpetas ya existía',
+        })
+      } else {
+        setObsidianMsg({ type: 'error', text: 'Error: ' + (r.error || 'desconocido') })
+      }
+    } catch (err) {
+      setObsidianMsg({ type: 'error', text: 'Error: ' + err.message })
+    } finally {
+      setObsidianBusy(false)
+      setTimeout(() => setObsidianMsg(null), 5000)
+    }
+  }
+
+  const handleExportAllObsidian = async () => {
+    if (!window.api?.obsidian) return
+    if (!confirm('¿Exportar todos los proyectos a Obsidian ahora?')) return
+    setObsidianBusy(true)
+    setObsidianMsg(null)
+    try {
+      const r = await window.api.obsidian.exportAll()
+      if (r.success) {
+        setObsidianMsg({
+          type: 'ok',
+          text: `${r.exportados} de ${r.total} proyectos exportados` +
+            (r.omitidos.length > 0 ? ` (${r.omitidos.length} omitidos: tipo desconocido)` : ''),
+        })
+      } else {
+        setObsidianMsg({ type: 'error', text: 'Error: ' + (r.error || 'desconocido') })
+      }
+    } catch (err) {
+      setObsidianMsg({ type: 'error', text: 'Error: ' + err.message })
+    } finally {
+      setObsidianBusy(false)
+      setTimeout(() => setObsidianMsg(null), 6000)
+    }
   }
 
   /* ─── Tema por proyecto ─── */
@@ -412,6 +486,50 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
         {/* ═══════ RESPALDO EN LA NUBE ═══════ */}
         <section className="bg-white rounded-xl border border-brand-gold/20 p-5">
           <BackupPanel />
+        </section>
+
+        {/* ═══════ OBSIDIAN ═══════ */}
+        <section className="bg-white rounded-xl border border-brand-gold/20 p-5">
+          <h2 className="text-sm font-bold text-brand-ink font-serif mb-1">Obsidian</h2>
+          <p className="text-xs text-brand-ink-3 font-sans mb-4">
+            Cada vez que guardas, el proyecto se exporta como .md a tu vault de Obsidian,
+            organizado en carpetas por categoría.
+          </p>
+
+          <div className="bg-brand-gold-pale/40 border border-brand-gold/20 rounded-lg px-3 py-2 mb-4">
+            <p className="text-xs text-brand-ink-3 font-sans mb-0.5">Carpeta destino actual</p>
+            <p className="text-xs text-brand-ink font-mono break-all">{obsidianPath || '…'}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handlePickObsidianFolder}
+              disabled={obsidianBusy}
+              className="text-sm px-4 py-2 bg-brand-teal text-white rounded-lg hover:opacity-90 transition-opacity font-sans disabled:opacity-50"
+            >
+              Cambiar carpeta
+            </button>
+            <button
+              onClick={handleEnsureObsidianStructure}
+              disabled={obsidianBusy}
+              className="text-sm px-4 py-2 border border-brand-gold/40 text-brand-ink rounded-lg hover:bg-brand-gold-pale/50 transition-colors font-sans disabled:opacity-50"
+            >
+              {obsidianBusy ? 'Trabajando…' : 'Crear estructura de carpetas'}
+            </button>
+            <button
+              onClick={handleExportAllObsidian}
+              disabled={obsidianBusy}
+              className="text-sm px-4 py-2 border border-brand-gold/40 text-brand-ink rounded-lg hover:bg-brand-gold-pale/50 transition-colors font-sans disabled:opacity-50"
+            >
+              {obsidianBusy ? 'Exportando…' : 'Exportar todo ahora'}
+            </button>
+          </div>
+
+          {obsidianMsg && (
+            <div className={`mt-3 p-2 rounded text-xs font-sans ${obsidianMsg.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              {obsidianMsg.text}
+            </div>
+          )}
         </section>
 
         {/* ═══════ INFORMACIÓN ═══════ */}

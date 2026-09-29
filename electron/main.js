@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, dialog } = require("electron");
 const path = require("path");
 
 // Forzar HTTP/1.1 en Chromium: HTTP/2 contra Cloudflare/Supabase falla con
@@ -15,7 +15,13 @@ const aiService = require("./services/aiService.js");
 const windowState = require("./window-state");
 const bibleService = require("./bible-database.js");
 const logger = require("./logger");
-const { exportProjectToObsidian } = require('./services/exportObsidianService');
+const {
+  exportProjectToObsidian,
+  exportAllProjectsToObsidian,
+  getObsidianRawPath,
+  setObsidianRawPath,
+  ensureObsidianStructure,
+} = require('./services/exportObsidianService');
 
 // IPC module registration
 const ipcDb = require("./ipc/db");
@@ -175,10 +181,57 @@ ipcMain.handle('sections:delete', async (event, sectionId) => {
 
 ipcMain.handle('obsidian:exportProject', async (event, { project, sections }) => {
   try {
-    const filePath = exportProjectToObsidian(project, sections);
+    const filePath = exportProjectToObsidian(project, sections, db);
     return { success: true, filePath };
   } catch (err) {
     console.error('[IPC obsidian:exportProject]', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('obsidian:getPath', async () => {
+  try {
+    return { success: true, path: getObsidianRawPath(db) };
+  } catch (err) {
+    console.error('[IPC obsidian:getPath]', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('obsidian:pickFolder', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Elegir carpeta destino de Obsidian',
+      buttonLabel: 'Elegir carpeta',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || !result.filePaths[0]) {
+      return { success: true, canceled: true };
+    }
+    const rawPath = setObsidianRawPath(db, result.filePaths[0]);
+    return { success: true, path: rawPath };
+  } catch (err) {
+    console.error('[IPC obsidian:pickFolder]', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('obsidian:ensureStructure', async () => {
+  try {
+    const { base, creadas } = ensureObsidianStructure(db);
+    return { success: true, base, creadas };
+  } catch (err) {
+    console.error('[IPC obsidian:ensureStructure]', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('obsidian:exportAll', async () => {
+  try {
+    const result = exportAllProjectsToObsidian(db);
+    return { success: true, ...result };
+  } catch (err) {
+    console.error('[IPC obsidian:exportAll]', err);
     return { success: false, error: err.message };
   }
 });

@@ -159,6 +159,39 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_detected_references_libro_capitulo
       ON detected_references(libro, capitulo);
 
+    -- Estado de sincronización: versión base remota de cada fila local.
+    -- Permite detectar conflictos cuando la nube cambió después de la base.
+    CREATE TABLE IF NOT EXISTS sync_state (
+      table_name      TEXT NOT NULL,
+      row_id          TEXT NOT NULL,
+      base_updated_at TEXT,
+      last_synced_at  TEXT,
+      PRIMARY KEY (table_name, row_id)
+    );
+
+    -- Conflictos de edición pendientes de resolución por el usuario.
+    CREATE TABLE IF NOT EXISTS sync_conflicts (
+      id               TEXT PRIMARY KEY,
+      table_name       TEXT NOT NULL,
+      row_id           TEXT NOT NULL,
+      project_id       TEXT,
+      project_title    TEXT,
+      title_local      TEXT,
+      title_remote     TEXT,
+      content_local    TEXT,
+      content_remote   TEXT,
+      local_updated_at TEXT,
+      remote_updated_at TEXT,
+      base_updated_at  TEXT,
+      remote_snapshot  TEXT,
+      detected_at      TEXT DEFAULT (datetime('now')),
+      status           TEXT DEFAULT 'pending',
+      resolution       TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sync_conflicts_status
+      ON sync_conflicts(status);
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,

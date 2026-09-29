@@ -67,5 +67,9 @@ contextBridge.exposeInMainWorld('api', {
   obsidian: {
     exportProject: (project, sections) =>
       ipcRenderer.invoke('obsidian:exportProject', { project, sections }),
+    getPath: () => ipcRenderer.invoke('obsidian:getPath'),
+    pickFolder: () => ipcRenderer.invoke('obsidian:pickFolder'),
+    ensureStructure: () => ipcRenderer.invoke('obsidian:ensureStructure'),
+    exportAll: () => ipcRenderer.invoke('obsidian:exportAll'),
   },
 })

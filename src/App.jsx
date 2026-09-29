@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Home from './components/Home/Home';
 import Layout from './components/Layout/Layout';
 import AppSidebar from './components/Layout/AppSidebar';
@@ -12,6 +12,8 @@ import WritingAssistant from './components/Assistant/WritingAssistant';
 import OllamaChat from './components/Assistant/OllamaChat';
 import NewProjectModal from './components/Home/NewProjectModal';
 import ExportModal from './components/Export/ExportModal';
+import ConflictResolutionModal from './components/Sync/ConflictResolutionModal';
+import { AlertTriangle } from 'lucide-react';
 import DocumentEditor from './components/Home/DocumentEditor';
 import GlobalResourcesView from './components/Recursos/GlobalResourcesView';
 import DocumentosView from './components/Documentos/DocumentosView';
@@ -28,6 +30,48 @@ import useAppStore from './stores/appStore';
 
 function App() {
   const store = useAppStore();
+
+  // ── Conflictos de sincronización ───────────────────────────
+  const [conflictCount, setConflictCount] = useState(0);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
+  const refreshConflictCount = useCallback(async () => {
+    try {
+      const pending = await syncService.getPendingConflicts();
+      setConflictCount(pending.length);
+    } catch {
+      // ignorar
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshConflictCount();
+    const handler = (e) => setConflictCount(e.detail?.count ?? 0);
+    window.addEventListener('lw:conflicts-change', handler);
+    return () => window.removeEventListener('lw:conflicts-change', handler);
+  }, [refreshConflictCount]);
+
+  const handleConflictsResolved = useCallback(async () => {
+    await refreshConflictCount();
+    // Recargar el proyecto abierto para reflejar la resolución (solo si ya está en el editor),
+    // conservando la sección activa del usuario.
+    const inEditor = store.vistaActiva === 'editor' || (store.vistaActiva === 'proyectos' && store.projectId);
+    if (store.projectId && inEditor) {
+      try {
+        const fullProject = await projectService.getProject(store.projectId);
+        if (fullProject) {
+          const prevActive = store.activeSection;
+          store.setProjectData(fullProject);
+          if (prevActive && (fullProject.sections || []).some((s) => s.id === prevActive)) {
+            useAppStore.setState({ activeSection: prevActive });
+          }
+        }
+      } catch {
+        // ignorar
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.projectId, store.vistaActiva, store.activeSection, refreshConflictCount]);
 
   // ── One-shot initialisation ──────────────────────────────
   const migrationRan = useRef(false);
@@ -501,6 +545,23 @@ function App() {
         )}
         <div className="flex-1 overflow-hidden">{renderContent()}</div>
       </div>
+      {/* Alerta de conflictos de sincronización */}
+      {conflictCount > 0 && (
+        <button
+          onClick={() => setShowConflictModal(true)}
+          title={`${conflictCount} conflicto(s) de sincronización pendientes`}
+          className="fixed bottom-20 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-full shadow-lg hover:bg-amber-600 transition-colors"
+        >
+          <AlertTriangle size={16} />
+          <span className="text-xs font-semibold">{conflictCount}</span>
+        </button>
+      )}
+      {showConflictModal && (
+        <ConflictResolutionModal
+          onClose={() => setShowConflictModal(false)}
+          onResolved={handleConflictsResolved}
+        />
+      )}
     </div>
   );
 }
