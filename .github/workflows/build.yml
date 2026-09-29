@@ -40,7 +40,12 @@ jobs:
         shell: bash
         run: |
           VERSION=${RELEASE_TAG#v}
-          npm version $VERSION --no-git-tag-version
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" != "$VERSION" ]; then
+            npm version "$VERSION" --no-git-tag-version
+          else
+            echo "La versión ya es $VERSION, no hay cambio."
+          fi
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
@@ -66,7 +71,12 @@ jobs:
         shell: bash
         run: |
           VERSION=${RELEASE_TAG#v}
-          npm version $VERSION --no-git-tag-version
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" != "$VERSION" ]; then
+            npm version "$VERSION" --no-git-tag-version
+          else
+            echo "La versión ya es $VERSION, no hay cambio."
+          fi
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
@@ -92,7 +102,12 @@ jobs:
         shell: bash
         run: |
           VERSION=${RELEASE_TAG#v}
-          npm version $VERSION --no-git-tag-version
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" != "$VERSION" ]; then
+            npm version "$VERSION" --no-git-tag-version
+          else
+            echo "La versión ya es $VERSION, no hay cambio."
+          fi
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
       - run: npx electron-rebuild -f -w better-sqlite3
