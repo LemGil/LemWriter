@@ -12,7 +12,10 @@ let pdfParse = null;
 
 async function ensurePdfParse() {
   if (!pdfParse) {
-    pdfParse = (await import('pdf-parse')).default;
+    // Se importa el lib directo: el index.js de pdf-parse trae un bloque
+    // "for testing purpose" que intenta leer ./test/data/05-versions-space.pdf
+    // cuando module.parent no está definido (import dinámico en Electron).
+    pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
   }
   return pdfParse;
 }

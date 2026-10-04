@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { estimarPaginas } from '../../utils/estimarPaginas'
 import { ChevronRight, ChevronDown, Plus, BookOpen, GraduationCap, ChevronUp, GripVertical } from 'lucide-react'
 
 const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, onRenameSection, onDeleteSection, onReorderSection, icon: HeaderIcon, title = 'Estudio actual', addLabel = 'Agregar clase' }) => {
@@ -10,6 +11,14 @@ const TeachingTree = ({ sections, activeSection, onSelectSection, onAddSection, 
   const draggedIdRef = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
   const [invalidDropTooltip, setInvalidDropTooltip] = useState({ show: false, x: 0, y: 0 })
+
+// Páginas estimadas de impresión por sección (medición oculta, con caché)
+const paginasPorSeccion = useMemo(() => {
+  const m = {}
+  ;(sections || []).forEach((s) => { m[s.id] = estimarPaginas(s.content) })
+  return m
+}, [sections])
+
 
   const handleDelete = async (e, sectionId) => {
     e.stopPropagation()
@@ -139,7 +148,8 @@ return (
         <span className="text-base shrink-0 cursor-grab active:cursor-grabbing" title="Arrastrar para reordenar">
           <GripVertical size={14} className="text-gray-300 hover:text-gray-500" />
         </span>
-        <BookOpen size={14} className="text-yellow-600 shrink-0" />
+        <span className="shrink-0 w-5 text-center text-[10px] font-bold text-gray-400" title="Número de sección">{idx + 1}</span>
+      <BookOpen size={14} className="text-yellow-600 shrink-0" />
         {editingId === section.id ? (
           <input
             ref={inputRef}
@@ -153,6 +163,11 @@ return (
         ) : (
           <span className="truncate flex-1 min-w-0">{section.title}</span>
         )}
+      {paginasPorSeccion[section.id] > 0 && (
+  <span className="shrink-0 text-[10px] text-gray-400 whitespace-nowrap" title="Páginas estimadas en impresión">
+    ~{paginasPorSeccion[section.id]} p.
+  </span>
+)}
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => handleMove(e, section, 'up')}

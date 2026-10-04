@@ -10,3 +10,4 @@ lemwriter.db
 lemwriter.backup.db
 .codegraph/
 .opencode/
+*.bak-*

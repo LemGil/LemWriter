@@ -311,7 +311,7 @@ body,
   margin-bottom: 0.5em;
 }
 
-.ProseMirror ol {
+.ProseMirror ol:not([type]) {
   list-style-type: decimal;
   padding-left: 1.5em;
   margin-top: 0.5em;
@@ -323,6 +323,12 @@ body,
   margin-bottom: 0.25em;
 }
 
+.ProseMirror a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  cursor: text;
+}
+
 .ProseMirror blockquote {
   border-left: 3px solid #d1d5db;
   padding-left: 1em;
@@ -332,6 +338,76 @@ body,
   margin-bottom: 0.75em;
   color: #6b7280;
   font-style: italic;
+}
+/* ─── Bloques ministeriales (tipos de nota, igual que en el móvil) ─── */
+.ProseMirror blockquote.callout {
+  font-style: normal;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 16px;
+}
+.ProseMirror blockquote.callout-biblia,
+.ProseMirror blockquote[data-callout-type="biblia"] {
+  border-left: 4px solid #c9a24a;
+  background: rgba(201, 162, 74, 0.12);
+}
+.ProseMirror blockquote.callout-biblia::before,
+.ProseMirror blockquote[data-callout-type="biblia"]::before {
+  content: '📖 PASAJE BÍBLICO';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #c9a24a;
+  margin-bottom: 6px;
+  user-select: none;
+}
+.ProseMirror blockquote.callout-idea,
+.ProseMirror blockquote[data-callout-type="idea"] {
+  border-left: 4px solid #0284c7;
+  background: rgba(56, 189, 248, 0.10);
+}
+.ProseMirror blockquote.callout-idea::before,
+.ProseMirror blockquote[data-callout-type="idea"]::before {
+  content: '💡 IDEA / ILUSTRACIÓN';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #0284c7;
+  margin-bottom: 6px;
+  user-select: none;
+}
+.ProseMirror blockquote.callout-aplicacion,
+.ProseMirror blockquote[data-callout-type="aplicacion"] {
+  border-left: 4px solid #059669;
+  background: rgba(52, 211, 153, 0.10);
+}
+.ProseMirror blockquote.callout-aplicacion::before,
+.ProseMirror blockquote[data-callout-type="aplicacion"]::before {
+  content: '🎯 APLICACIÓN PRÁCTICA';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #059669;
+  margin-bottom: 6px;
+  user-select: none;
+}
+.ProseMirror blockquote.callout-nota,
+.ProseMirror blockquote[data-callout-type="nota"] {
+  border-left: 4px solid #db2777;
+  background: rgba(244, 114, 182, 0.10);
+}
+.ProseMirror blockquote.callout-nota::before,
+.ProseMirror blockquote[data-callout-type="nota"]::before {
+  content: '📌 NOTA MINISTERIAL';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #db2777;
+  margin-bottom: 6px;
+  user-select: none;
 }
 
 .ProseMirror code {
@@ -916,4 +992,19 @@ body,
 .dark .spellcheck-error,
 [data-theme="dark"] .spellcheck-error {
   text-decoration-color: #fc8181;
+}
+
+/* === Impresión de documentos (LemWriter) === */
+#lemwriter-print-root { display: none; }
+@media print {
+  body.lemwriter-printing { background: #fff !important; }
+  body.lemwriter-printing > *:not(#lemwriter-print-root) { display: none !important; }
+  body.lemwriter-printing #lemwriter-print-root {
+    display: block !important;
+    background: #fff;
+    color: #000;
+  }
+  .lemwriter-marca-nota { color: #1d4ed8; font-weight: bold; }
+  .lemwriter-notas-pie { font-size: 0.9em; margin-top: 1em; }
+  @page { margin: 2cm; }
 }

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import BibleVerseLookup from '../Editor/BibleVerseLookup'
 
 import {
@@ -7,8 +7,10 @@ import {
   List, ListOrdered,
   Quote, Code, Minus, Image, Table, BookMarked,
   Undo, Redo, RemoveFormatting,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Link2,
   Target, HelpCircle, BookOpen, Video, StickyNote,
 } from 'lucide-react'
+import PrintPreviewModal from './PrintPreviewModal';
 
 const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
   <button
@@ -29,7 +31,11 @@ const ToolbarDivider = () => (
   <div className="w-px h-5 bg-brand-gold/20 mx-1" />
 )
 
-const Toolbar = ({ editor, projectType, projectId }) => {
+const Toolbar = ({ editor, projectType, projectId, sectionInfo, sections = [], activeSectionId }) => {
+  const [vistaPrevia, setVistaPrevia] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(null)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [bloqueMenuAbierto, setBloqueMenuAbierto] = useState(false)
   if (!editor) return null
 
   const canUndo = () => {
@@ -46,6 +52,76 @@ const Toolbar = ({ editor, projectType, projectId }) => {
     } catch (e) {
       return false
     }
+  }
+
+
+  const COLORES_TEXTO = ['#1f2937', '#b91c1c', '#c9a24a', '#166534', '#1d4ed8', '#6d28d9', '#be185d', '#0e7490']
+  const COLORES_RESALTADO = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fecdd3', '#e9d5ff', '#fed7aa', '#a5f3fc', '#d9f99d']
+
+  const claseBotonMenu = (activo) => `p-1.5 rounded transition-colors flex items-center justify-center ${
+    activo ? 'bg-brand-teal text-white' : 'theme-text-muted hover:bg-brand-gold-pale hover:text-brand-teal'
+  }`
+
+  const aplicarColorTexto = (color) => {
+    if (color) editor.chain().focus().setColor(color).run()
+    else editor.chain().focus().unsetColor().run()
+    setMenuAbierto(null)
+  }
+
+  const aplicarResaltado = (color) => {
+    if (color) editor.chain().focus().toggleHighlight({ color }).run()
+    else editor.chain().focus().unsetHighlight().run()
+    setMenuAbierto(null)
+  }
+
+  const normalizarUrl = (u) => {
+    const t = (u || '').trim()
+    if (!t) return ''
+    if (t.indexOf('http://') === 0 || t.indexOf('https://') === 0) return t
+    return 'https://' + t
+  }
+
+  const abrirMenuEnlace = () => {
+    setLinkUrl(editor.getAttributes('link').href || '')
+    setMenuAbierto(menuAbierto === 'enlace' ? null : 'enlace')
+  }
+
+  const aplicarEnlace = () => {
+    const href = normalizarUrl(linkUrl)
+    if (href) editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
+    setMenuAbierto(null)
+  }
+
+  const quitarEnlace = () => {
+    editor.chain().focus().unsetLink().run()
+    setMenuAbierto(null)
+    setLinkUrl('')
+  }
+
+  const TIPOS_LISTA = [
+    { tipo: '1', etiqueta: 'Numérica', muestra: '1, 2, 3' },
+    { tipo: 'I', etiqueta: 'Romana', muestra: 'I, II, III' },
+    { tipo: 'A', etiqueta: 'Letras mayúsculas', muestra: 'A, B, C' },
+    { tipo: 'a', etiqueta: 'Letras minúsculas', muestra: 'a, b, c' },
+  ]
+
+  const tipoListaActual = () => {
+    if (!editor.isActive('orderedList')) return '1'
+    return editor.getAttributes('orderedList').type || '1'
+  }
+
+  const ESTILOS_LISTA = { '1': null, 'I': 'upper-roman', 'A': 'upper-alpha', 'a': 'lower-alpha' }
+
+  const aplicarTipoLista = (tipo) => {
+    const chain = editor.chain().focus()
+    if (!editor.isActive('orderedList')) chain.toggleOrderedList()
+    chain.updateAttributes('orderedList', { type: tipo === '1' ? null : tipo, estiloLista: ESTILOS_LISTA[tipo] }).run()
+    setMenuAbierto(null)
+  }
+
+  const quitarLista = () => {
+    if (editor.isActive('orderedList')) editor.chain().focus().toggleOrderedList().run()
+    setMenuAbierto(null)
   }
 
   const handleImageUpload = () => {
@@ -65,6 +141,41 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       reader.readAsDataURL(file)
     }
     input.click()
+  }
+
+
+  const TIPOS_BLOQUE = [
+    { tipo: 'biblia', etiqueta: '📖 Pasaje bíblico' },
+    { tipo: 'idea', etiqueta: '💡 Idea / Ilustración' },
+    { tipo: 'aplicacion', etiqueta: '🎯 Aplicación práctica' },
+    { tipo: 'nota', etiqueta: '📌 Nota ministerial' },
+  ]
+
+  const tipoBloqueActivo = TIPOS_BLOQUE.find(t => editor.isActive('blockquote', { calloutType: t.tipo }))
+  const esCitaSimple = editor.isActive('blockquote') && !tipoBloqueActivo
+  const etiquetaBloque = tipoBloqueActivo ? tipoBloqueActivo.etiqueta : esCitaSimple ? '❝ Cita' : 'Bloque ▾'
+
+  const aplicarTipoBloque = (tipo) => {
+    if (editor.isActive('blockquote', { calloutType: tipo })) {
+      editor.chain().focus().unsetBlockquote().run()
+    } else if (editor.isActive('blockquote')) {
+      editor.chain().focus().updateAttributes('blockquote', { calloutType: tipo }).run()
+    } else {
+      const ok = editor.chain().focus().wrapIn('blockquote', { calloutType: tipo }).run()
+      if (!ok) editor.chain().focus().setBlockquote().updateAttributes('blockquote', { calloutType: tipo }).run()
+    }
+    setBloqueMenuAbierto(false)
+  }
+
+  const aplicarCitaSimple = () => {
+    if (esCitaSimple) {
+      editor.chain().focus().unsetBlockquote().run()
+    } else if (editor.isActive('blockquote')) {
+      editor.chain().focus().updateAttributes('blockquote', { calloutType: null }).run()
+    } else {
+      editor.chain().focus().setBlockquote().run()
+    }
+    setBloqueMenuAbierto(false)
   }
 
   const handleInsertFootnote = () => {
@@ -181,23 +292,118 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       >
         <List size={16} />
       </ToolbarButton>
+      <div className="relative">
+        <button
+          onClick={() => setMenuAbierto(menuAbierto === 'lista' ? null : 'lista')}
+          title="Lista numerada"
+          className={claseBotonMenu(editor.isActive('orderedList') || menuAbierto === 'lista')}
+        >
+          <ListOrdered size={16} />
+        </button>
+        {menuAbierto === 'lista' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(null)} />
+            <div className="absolute z-50 mt-1 w-52 rounded-lg border theme-border theme-bg shadow-xl p-1.5">
+              {TIPOS_LISTA.map(t => (
+                <button
+                  key={t.tipo}
+                  onClick={() => aplicarTipoLista(t.tipo)}
+                  className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center justify-between ${
+                    tipoListaActual() === t.tipo ? 'bg-brand-teal text-white' : 'theme-text hover:bg-brand-gold-pale'
+                  }`}
+                >
+                  <span>{t.etiqueta}</span>
+                  <span className={tipoListaActual() === t.tipo ? 'text-white/80' : 'theme-text-muted'}>{t.muestra}</span>
+                </button>
+              ))}
+              {editor.isActive('orderedList') && (
+                <div className="border-t theme-border mt-1 pt-1">
+                  <button
+                    onClick={quitarLista}
+                    className="w-full text-left px-2 py-1.5 rounded text-xs transition-colors text-red-600 hover:bg-red-50"
+                  >
+                    Quitar lista
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <ToolbarDivider />
       <ToolbarButton
-        onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive('orderedList')}
-        title="Lista ordenada"
+        onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+        isActive={editor.isActive({ textAlign: 'left' })}
+        title="Alinear a la izquierda"
       >
-        <ListOrdered size={16} />
+        <AlignLeft size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+        isActive={editor.isActive({ textAlign: 'center' })}
+        title="Centrar"
+      >
+        <AlignCenter size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+        isActive={editor.isActive({ textAlign: 'right' })}
+        title="Alinear a la derecha"
+      >
+        <AlignRight size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
+        isActive={editor.isActive({ textAlign: 'justify' })}
+        title="Justificar"
+      >
+        <AlignJustify size={16} />
       </ToolbarButton>
 
       <ToolbarDivider />
 
-      <ToolbarButton
-        onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive('blockquote')}
-        title="Cita"
-      >
-        <Quote size={16} />
-      </ToolbarButton>
+      <div className="relative">
+        <button
+          onClick={() => setBloqueMenuAbierto(v => !v)}
+          title="Bloques: cita y notas ministeriales"
+          className={`p-1.5 rounded transition-colors flex items-center gap-1 text-xs font-medium ${
+            editor.isActive('blockquote')
+              ? 'bg-brand-teal text-white'
+              : 'theme-text-muted hover:bg-brand-gold-pale hover:text-brand-teal'
+          }`}
+        >
+          <Quote size={16} />
+          <span className="hidden xl:inline">{etiquetaBloque}</span>
+        </button>
+        {bloqueMenuAbierto && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setBloqueMenuAbierto(false)} />
+            <div className="absolute z-50 mt-1 w-60 rounded-lg border theme-border theme-bg shadow-xl py-1">
+              {TIPOS_BLOQUE.map(t => (
+                <button
+                  key={t.tipo}
+                  onClick={() => aplicarTipoBloque(t.tipo)}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-gold-pale transition-colors ${
+                    tipoBloqueActivo?.tipo === t.tipo ? 'text-brand-teal font-semibold' : 'theme-text'
+                  }`}
+                >
+                  {t.etiqueta}
+                </button>
+              ))}
+              <div className="border-t theme-border my-1" />
+              <button
+                onClick={aplicarCitaSimple}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-gold-pale transition-colors ${
+                  esCitaSimple ? 'text-brand-teal font-semibold' : 'theme-text'
+                }`}
+              >
+                ❝ Cita simple
+              </button>
+            </div>
+          </>
+        )}
+      </div>
       <ToolbarButton
         onClick={() => editor?.chain().focus().toggleCode().run()}
         isActive={editor.isActive('code')}
@@ -220,7 +426,106 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       >
         <RemoveFormatting size={16} />
       </ToolbarButton>
-
+      <div className="relative">
+        <button
+          onClick={() => setMenuAbierto(menuAbierto === 'color' ? null : 'color')}
+          title="Color de texto y resaltado"
+          className={claseBotonMenu(menuAbierto === 'color')}
+        >
+          <span
+            className="text-sm font-bold leading-none px-0.5"
+            style={{ borderBottom: `3px solid ${editor.getAttributes('textStyle').color || '#9ca3af'}` }}
+          >
+            A
+          </span>
+        </button>
+        {menuAbierto === 'color' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(null)} />
+            <div className="absolute z-50 mt-1 w-56 rounded-lg border theme-border theme-bg shadow-xl p-3">
+              <p className="text-[11px] font-semibold theme-text-muted mb-2">Color del texto</p>
+              <div className="flex flex-wrap gap-1.5">
+                {COLORES_TEXTO.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => aplicarColorTexto(c)}
+                    title={c}
+                    className="w-6 h-6 rounded-full border border-black/15 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <button
+                  onClick={() => aplicarColorTexto(null)}
+                  title="Quitar color"
+                  className="w-6 h-6 rounded-full border border-black/15 theme-bg theme-text-muted hover:scale-110 transition-transform text-xs leading-none"
+                >
+                  &#215;
+                </button>
+              </div>
+              <p className="text-[11px] font-semibold theme-text-muted mb-2 mt-3">Resaltado</p>
+              <div className="flex flex-wrap gap-1.5">
+                {COLORES_RESALTADO.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => aplicarResaltado(c)}
+                    title={c}
+                    className="w-6 h-6 rounded border border-black/15 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <button
+                  onClick={() => aplicarResaltado(null)}
+                  title="Quitar resaltado"
+                  className="w-6 h-6 rounded border border-black/15 theme-bg theme-text-muted hover:scale-110 transition-transform text-xs leading-none"
+                >
+                  &#215;
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="relative">
+        <button
+          onClick={abrirMenuEnlace}
+          title="Insertar enlace"
+          className={claseBotonMenu(editor.isActive('link') || menuAbierto === 'enlace')}
+        >
+          <Link2 size={16} />
+        </button>
+        {menuAbierto === 'enlace' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(null)} />
+            <div className="absolute z-50 mt-1 w-64 rounded-lg border theme-border theme-bg shadow-xl p-3">
+              <p className="text-[11px] font-semibold theme-text-muted mb-2">Enlace</p>
+              <input
+                value={linkUrl}
+                onChange={e => setLinkUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') aplicarEnlace() }}
+                placeholder="https://&#8230;"
+                autoFocus
+                className="w-full text-sm px-2 py-1.5 rounded border theme-border theme-bg theme-text mb-2 focus:outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={aplicarEnlace}
+                  className="flex-1 px-2 py-1.5 bg-brand-teal text-white rounded text-xs font-medium hover:opacity-90"
+                >
+                  Aplicar
+                </button>
+                {editor.isActive('link') && (
+                  <button
+                    onClick={quitarEnlace}
+                    className="px-2 py-1.5 border border-red-200 text-red-600 rounded text-xs hover:bg-red-50"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       <ToolbarDivider />
 
       <ToolbarButton
@@ -235,6 +540,10 @@ const Toolbar = ({ editor, projectType, projectId }) => {
       >
         <BookMarked size={16} />
       </ToolbarButton>
+      <ToolbarButton onClick={() => setVistaPrevia(true)} title="Imprimir">🖨️</ToolbarButton>
+      {vistaPrevia && (
+        <PrintPreviewModal html={editor ? editor.getHTML() : ""} info={sectionInfo} onCerrar={() => setVistaPrevia(false)} />
+      )}
       <ToolbarButton
         onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         title="Insertar tabla (3×3)"

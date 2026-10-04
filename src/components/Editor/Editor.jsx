@@ -1,6 +1,8 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useMemo } from 'react'
+import { estimarPaginas } from '../../utils/estimarPaginas'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { OrderedList } from '@tiptap/extension-list'
 import Underline from '@tiptap/extension-underline'
 import { ResizableImage } from './ResizableImageExtension'
 import { Table } from '@tiptap/extension-table'
@@ -8,22 +10,60 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Footnote } from './FootnoteExtension'
+import { CustomBlockquote } from './CustomBlockquote'
+import { TextAlign } from '@tiptap/extension-text-align'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
+import { Highlight } from '@tiptap/extension-highlight'
 import { BOOK_STYLES } from '../../config/bookStyles'
 import { SpellcheckExtension } from '../../extensions/SpellcheckExtension'
 import { SpellcheckContextMenu } from '../SpellcheckContextMenu'
 
-const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, projectStyle, sectionId }) => {
+const OrderedListConEstilo = OrderedList.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      estiloLista: {
+        default: null,
+        parseHTML: element => {
+          if (element.style.listStyleType) return element.style.listStyleType
+          const t = element.getAttribute('type')
+          return t === 'I' ? 'upper-roman'
+            : t === 'A' ? 'upper-alpha'
+            : t === 'a' ? 'lower-alpha'
+            : t === 'i' ? 'lower-roman' : null
+        },
+        renderHTML: attributes => {
+          if (!attributes.estiloLista) return {}
+          return { style: `list-style-type: ${attributes.estiloLista}` }
+        },
+      },
+    }
+  },
+})
+
+const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, projectStyle, sectionId, sectionNumero, sectionTotal }) => {
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
   const editorContainerRef = useRef(null)
   const previousSectionIdRef = useRef(sectionId)
+  const paginas = useMemo(() => estimarPaginas(content), [content])
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         underline: false,
+        blockquote: false,
+        link: { openOnClick: false },
+        orderedList: false,
       }),
+      OrderedListConEstilo,
       Underline,
+      CustomBlockquote,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
       Table.configure({ resizable: true }),
       TableRow,
@@ -143,6 +183,12 @@ const Editor = ({ content, onUpdate, onEditorReady, sectionTitle, designStyles, 
       <div className="max-w-3xl mx-auto">
         {sectionTitle && (
           <h1 className="text-3xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+            {sectionNumero > 0 && sectionTotal > 0 && (
+              <span className="block text-sm font-sans font-normal text-gray-400 mb-1">
+                Sección {sectionNumero} de {sectionTotal}
+                {paginas > 0 ? ` · ~${paginas} pág${paginas === 1 ? '' : 's'}` : ''}
+              </span>
+            )}
             {sectionTitle}
           </h1>
         )}

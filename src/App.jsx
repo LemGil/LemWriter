@@ -370,7 +370,9 @@ function App() {
                 editor={store.editorInstance}
                 projectType={store.projectType}
                 projectId={store.projectId}
-              />
+        sectionInfo={(() => { const s = (store.sections || []).find((x) => x.id === store.activeSection); return s ? { numero: store.sections.indexOf(s) + 1, total: store.sections.length, titulo: s.title || '' } : null })()}
+        sections={store.sections || []}
+        activeSectionId={store.activeSection} />
             }
             editor={
               store.activeSection ? (
@@ -379,7 +381,7 @@ function App() {
                   content={getActiveContent()}
                   onUpdate={handleContentUpdate}
                   onEditorReady={handleEditorReady}
-                  sectionTitle={getActiveSection()?.title}
+                  sectionTitle={getActiveSection()?.title} sectionNumero={(store.sections || []).findIndex((s) => s.id === store.activeSection) + 1} sectionTotal={(store.sections || []).length}
                   designStyles={designStyles}
                   projectStyle={store.projectStyle}
                 />

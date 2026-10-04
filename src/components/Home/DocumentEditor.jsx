@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react'
+import React, { useRef, useState, useCallback, useEffect } from 'react'
 import { ArrowLeft, File, Clock, FileText, Save, X, Trash2, Pencil, Check } from 'lucide-react'
 import Editor from '../Editor/Editor'
 import Toolbar from '../Toolbar/Toolbar'
@@ -53,8 +53,11 @@ const DocumentEditor = ({ document, onBack, theme, onThemeChange, onNameChange }
   const [editingName, setEditingName] = useState(false)
   const [fileName, setFileName] = useState(document?.file_name || '')
   const initialNameRef = useRef(document?.file_name || '')
+  const [lastSavedAt, setLastSavedAt] = useState(null)
 
   const isDirty = content !== initialContentRef.current || fileName !== initialNameRef.current
+  const dirtyRef = useRef(isDirty)
+  dirtyRef.current = isDirty
 
   const handleEditorReady = (editor) => {
     editorRef.current = editor
@@ -87,6 +90,7 @@ const DocumentEditor = ({ document, onBack, theme, onThemeChange, onNameChange }
       })
       initialContentRef.current = content
       initialNameRef.current = nameToSave
+      setLastSavedAt(new Date())
       if (onNameChange) onNameChange(nameToSave)
       return true
     } catch (e) {
@@ -96,6 +100,25 @@ const DocumentEditor = ({ document, onBack, theme, onThemeChange, onNameChange }
       setSaving(false)
     }
   }, [content, document, fileName, onNameChange])
+
+  const doSaveRef = useRef(null)
+  doSaveRef.current = doSave
+
+  /* ─── Autoguardado: guarda 2.5 s después del último cambio ─── */
+  useEffect(() => {
+    if (!isDirty) return undefined
+    const t = setTimeout(() => {
+      doSaveRef.current?.()
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [content, fileName, isDirty])
+
+  /* ─── Al desmontar con cambios pendientes, intentar guardar ─── */
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) doSaveRef.current?.()
+    }
+  }, [])
 
   const handleRename = async () => {
     if (!fileName.trim() || fileName.trim() === initialNameRef.current) {
@@ -205,12 +228,24 @@ const DocumentEditor = ({ document, onBack, theme, onThemeChange, onNameChange }
                   <FileText size={10} />
                   {document.word_count?.toLocaleString() || 0} palabras
                 </span>
-                {isDirty && (
+                {saving ? (
+                  <>
+                    <span>·</span>
+                    <span className="text-sky-600 font-semibold">Guardando…</span>
+                  </>
+                ) : isDirty ? (
                   <>
                     <span>·</span>
                     <span className="text-amber-600 font-semibold">sin guardar</span>
                   </>
-                )}
+                ) : lastSavedAt ? (
+                  <>
+                    <span>·</span>
+                    <span className="text-emerald-600 font-semibold">
+                      Guardado ✓ {lastSavedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
