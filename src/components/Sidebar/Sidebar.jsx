@@ -154,6 +154,18 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
         template_type: 'punto',
         order_index: sections.length,
       })
+    } else if (projectType === 'academia') {
+      const entryNum = sections.filter(s => s.type === 'tema').length + 1
+      const template = getTemplate('academia', templateKey)
+      const defaultContent = template?.defaultContent?.tema || ''
+      onAddSection({
+        id: `entry-${now}`,
+        type: 'tema',
+        title: `Tema ${entryNum}`,
+        content: defaultContent,
+        template_type: 'tema',
+        order_index: sections.length,
+      })
     } else if (projectType === 'sermon') {
       const entryNum = sections.length + 1
       const template = getTemplate('sermon', templateKey)
@@ -368,6 +380,20 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     onReorderSection={onReorderSection}
                   />
                 )}
+                {(projectType === 'academia') && (
+                  <TeachingTree
+                    sections={sections}
+                    activeSection={activeSection}
+                    onSelectSection={onSelectSection}
+                    onAddSection={handleAddSection}
+                    onRenameSection={onRenameSection}
+                    onDeleteSection={onDeleteSection}
+                    onReorderSection={onReorderSection}
+                    icon={() => <span className="text-base">🎓</span>}
+                    title="Temas"
+                    addLabel="Agregar tema"
+                  />
+                )}
                 {(projectType === 'sermon') && (
                   <TeachingTree
                     sections={sections}
@@ -503,6 +529,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     projectType === 'devotional' || projectType === 'devocional' ? 'Días' :
                     projectType === 'study' || projectType === 'estudio' ? 'Puntos' :
                     projectType === 'sermon' ? 'Sermones' :
+                    projectType === 'academia' ? 'Temas' :
                     projectType === 'video' ? 'Videos' : 'Secciones'
 
                   const sectionTypeLabel_singular = projectType === 'book' || projectType === 'libro' ? 'capítulo' :
@@ -510,6 +537,7 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
                     projectType === 'devotional' || projectType === 'devocional' ? 'día' :
                     projectType === 'study' || projectType === 'estudio' ? 'punto' :
                     projectType === 'sermon' ? 'sermón' :
+                    projectType === 'academia' ? 'tema' :
                     projectType === 'video' ? 'video' : 'sección'
 
                   const completedSections = sections.filter(s => {

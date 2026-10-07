@@ -1,43 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { BookOpen, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Trash2, ExternalLink, Clock } from 'lucide-react'
+import { BookOpen, BookMarked, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Trash2, ExternalLink, Clock } from 'lucide-react'
 import { projectService } from '../../services/projectService'
+import { cargarEstadosPublicacion } from '../../services/publicarAcademia'
 import BackupButton from '../Home/BackupButton'
 
 const projectTypes = [
   {
-    id: 'book',
-    title: 'Libros',
-    description: 'Obras completas para publicación con capítulos, referencias y personajes.',
-    icon: BookOpen,
-    bg: 'bg-gradient-to-br from-[#1A3A4A] to-[#2A5A6A]',
-    light: 'bg-blue-50',
-    border: 'border-blue-200',
-    features: ['Capítulos', 'Referencias', 'Personajes'],
-  },
-  {
-    id: 'teaching',
-    title: 'Enseñanzas',
-    description: 'Clases y series bíblicas con puntos clave, preguntas y texto base.',
-    icon: GraduationCap,
-    bg: 'bg-gradient-to-br from-[#C9A24A] to-[#D4B76A]',
-    light: 'bg-yellow-50',
-    border: 'border-yellow-200',
-    features: ['Puntos', 'Preguntas', 'Texto base'],
-  },
-  {
-    id: 'devotional',
-    title: 'Devocional',
-    description: 'Reflexiones diarias para meditación.',
-    icon: Heart,
-    bg: 'bg-gradient-to-br from-[#5A9A6A] to-[#7ABA8A]',
-    light: 'bg-green-50',
-    border: 'border-green-200',
-    features: ['Versículo', 'Reflexión', 'Oración'],
-  },
-  {
     id: 'estudio',
     title: 'Estudios Bíblicos',
-    description: 'Análisis de pasajes con referencias, palabras y aplicación.',
+    description: 'La investigación que hacemos de un tema o de un libro de la Biblia.',
     icon: Search,
     bg: 'bg-gradient-to-br from-[#5A4A3A] to-[#7A6A5A]',
     light: 'bg-amber-50',
@@ -45,9 +16,19 @@ const projectTypes = [
     features: ['Texto Base', 'Puntos', 'Aplicación'],
   },
   {
+    id: 'teaching',
+    title: 'Enseñanzas',
+    description: 'Transcripciones limpias y organizadas de las series que se han compartido con la Iglesia.',
+    icon: GraduationCap,
+    bg: 'bg-gradient-to-br from-[#C9A24A] to-[#D4B76A]',
+    light: 'bg-yellow-50',
+    border: 'border-yellow-200',
+    features: ['Puntos', 'Preguntas', 'Texto base'],
+  },
+  {
     id: 'sermon',
     title: 'Sermones',
-    description: 'Guiones de predicación con gancho, punto, ilustración y llamado.',
+    description: 'Escogemos las frases más relevantes de cada tema.',
     icon: Mic,
     bg: 'bg-gradient-to-br from-[#7A3A4A] to-[#9A5A6A]',
     light: 'bg-red-50',
@@ -57,19 +38,49 @@ const projectTypes = [
   {
     id: 'video',
     title: 'Videos',
-    description: 'Guiones para YouTube, largos o cortos, listos para grabar.',
+    description: 'Tomamos los puntos principales de cada tema y hacemos guiones cortos y largos.',
     icon: Video,
     bg: 'bg-gradient-to-br from-[#4A4A7A] to-[#6A6A9A]',
     light: 'bg-purple-50',
     border: 'border-purple-200',
     features: ['Hook', 'Guion', 'Cierre'],
   },
+  {
+    id: 'devotional',
+    title: 'Devocional',
+    description: 'Tomamos los puntos fundamentales de cada tema y hacemos devocionales para cada día.',
+    icon: Heart,
+    bg: 'bg-gradient-to-br from-[#5A9A6A] to-[#7ABA8A]',
+    light: 'bg-green-50',
+    border: 'border-green-200',
+    features: ['Versículo', 'Reflexión', 'Oración'],
+  },
+  {
+    id: 'academia',
+    title: 'Academia',
+    description: 'Series ya completas, organizadas y estructuradas para los cursos de la Academia.',
+    icon: BookMarked,
+    bg: 'bg-gradient-to-br from-[#8A6D1F] to-[#C9A24A]',
+    light: 'bg-yellow-50',
+    border: 'border-yellow-200',
+    features: ['Cursos', 'Temas', 'Publicación directa'],
+  },
+  {
+    id: 'book',
+    title: 'Libros',
+    description: 'Todo lo que se ha investigado, enseñado y enriquecido se une y se organiza en un libro.',
+    icon: BookOpen,
+    bg: 'bg-gradient-to-br from-[#1A3A4A] to-[#2A5A6A]',
+    light: 'bg-blue-50',
+    border: 'border-blue-200',
+    features: ['Capítulos', 'Referencias', 'Personajes'],
+  },
 ]
 
-const dbTypeMap = { book: 'libro', teaching: 'ensenanza', devotional: 'devocional', estudio: 'estudio', sermon: 'sermon', video: 'video' }
+const dbTypeMap = { book: 'libro', teaching: 'ensenanza', devotional: 'devocional', estudio: 'estudio', sermon: 'sermon', video: 'video', academia: 'academia' }
 
 const normalizeTypeId = (type) => {
-  const map = { libro: 'book', ensenanza: 'teaching', devocional: 'devotional', devotional: 'devotional', estudio: 'estudio', study: 'estudio' }
+  const map = { libro: 'book', ensenanza: 'teaching', devocional: 'devotional', devotional: 'devotional', estudio: 'estudio', study: 'estudio', academia: 'academia' }
   return map[type] || type
 }
 
@@ -81,8 +92,16 @@ const getTypeColor = (type) => {
     estudio: 'bg-gradient-to-br from-[#5A4A3A] to-[#7A6A5A]',
     sermon: 'bg-gradient-to-br from-[#7A3A4A] to-[#9A5A6A]',
     video: 'bg-gradient-to-br from-[#4A4A7A] to-[#6A6A9A]',
+    academia: 'bg-gradient-to-br from-[#8A6D1F] to-[#C9A24A]',
   }
   return colors[normalizeTypeId(type)] || 'bg-gradient-to-br from-gray-500 to-gray-600'
+}
+
+const formatFechaCorta = (fecha) => {
+  if (!fecha) return ''
+  const d = new Date(fecha)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 const getTypeIcon = (type) => {
@@ -123,11 +142,26 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
     fetchStats()
   }, [recentProjects])
 
+  const [estadosPublicacion, setEstadosPublicacion] = useState({})
+
+  useEffect(() => {
+    const idsAcademia = recentProjects
+      .filter(p => normalizeTypeId(p.type) === 'academia')
+      .map(p => p.id)
+    if (idsAcademia.length === 0) return
+    let vivo = true
+    cargarEstadosPublicacion(idsAcademia)
+      .then(mapa => { if (vivo) setEstadosPublicacion(mapa) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [recentProjects])
+
   const tabs = [
     { id: 'all', label: 'Todos', count: recentProjects.length },
     { id: 'book', label: 'Libros', icon: BookOpen, count: recentProjects.filter(p => p.type === 'libro' || p.type === 'book').length },
     { id: 'teaching', label: 'Enseñanzas', icon: GraduationCap, count: recentProjects.filter(p => p.type === 'ensenanza' || p.type === 'teaching').length },
     { id: 'devotional', label: 'Devocionales', icon: Heart, count: recentProjects.filter(p => p.type === 'devocional' || p.type === 'devotional').length },
+    { id: 'academia', label: 'Academias', icon: BookMarked, count: recentProjects.filter(p => p.type === 'academia').length },
     { id: 'estudio', label: 'Estudios', icon: Search, count: recentProjects.filter(p => p.type === 'estudio' || p.type === 'study').length },
     { id: 'sermon', label: 'Sermones', icon: Mic, count: recentProjects.filter(p => p.type === 'sermon').length },
     { id: 'video', label: 'Videos', icon: Video, count: recentProjects.filter(p => p.type === 'video').length },
@@ -306,6 +340,13 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
                       {(project.sections || []).length} secciones
                     </span>
                   </div>
+                  {normalizeTypeId(project.type) === 'academia' && estadosPublicacion[project.id] && (
+                    <span className={`inline-block mt-1.5 text-[10px] font-sans px-1.5 py-0.5 rounded-full border ${estadosPublicacion[project.id].publicado ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                      {estadosPublicacion[project.id].publicado
+                        ? `🎓 Publicado${estadosPublicacion[project.id].fecha ? ` · ${formatFechaCorta(estadosPublicacion[project.id].fecha)}` : ''}`
+                        : 'Sin publicar'}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

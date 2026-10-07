@@ -25,11 +25,31 @@ import { autoBackupService } from './services/autoBackupService';
 import { syncService } from './services/syncService';
 import { isSupabaseEnabled } from './services/supabaseClient';
 import { migrationService } from './services/migrationService';
+import PublicarAcademiaModal from './components/Editor/PublicarAcademiaModal';
+import { cargarEstadosPublicacion } from './services/publicarAcademia';
 import { resourceToHTML } from './config/resourceFormats';
 import useAppStore from './stores/appStore';
 
 function App() {
   const store = useAppStore();
+
+  // ── Publicación en la Academia (solo proyectos tipo academia) ──
+  const [showPublicarAcademia, setShowPublicarAcademia] = useState(false);
+  const [estadoPublicacion, setEstadoPublicacion] = useState(null);
+
+  useEffect(() => {
+    if (store.projectType !== 'academia' || !store.projectId) {
+      setEstadoPublicacion(null);
+      return;
+    }
+    let vivo = true;
+    cargarEstadosPublicacion([store.projectId])
+      .then((mapa) => {
+        if (vivo) setEstadoPublicacion(mapa[store.projectId] ?? { publicado: false, fecha: null });
+      })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [store.projectId, store.projectType]);
 
   // ── Conflictos de sincronización ───────────────────────────
   const [conflictCount, setConflictCount] = useState(0);
@@ -234,6 +254,8 @@ function App() {
           ? 'clase'
           : project.type === 'estudio'
             ? 'texto_base'
+            : project.type === 'academia'
+              ? 'tema'
             : 'dia';
     const newSection = {
       id: `sec-${Date.now()}`,
@@ -343,6 +365,8 @@ function App() {
             charCount={charCount}
             projectType={store.projectType}
             onSave={handleManualSave}
+            onPublicarAcademia={store.projectType === 'academia' ? () => setShowPublicarAcademia(true) : undefined}
+            estadoPublicacion={store.projectType === 'academia' ? estadoPublicacion : null}
             onRename={handleRename}
             onExport={() => store.setShowExport(true)}
             theme={store.theme}
@@ -425,6 +449,14 @@ function App() {
               projectStyle={store.projectStyle}
               currentSection={store.sections.find(s => s.id === store.activeSection) || null}
               onClose={() => store.setShowExport(false)}
+            />
+          )}
+          {showPublicarAcademia && store.projectType === 'academia' && (
+            <PublicarAcademiaModal
+              proyecto={{ id: store.projectId, titulo: store.projectName }}
+              secciones={store.sections}
+              onClose={() => setShowPublicarAcademia(false)}
+              onPublicado={(estado) => setEstadoPublicacion(estado)}
             />
           )}
         </>

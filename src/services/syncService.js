@@ -578,9 +578,16 @@ async function pullFromCloud(db) {
             await setBaseUpdatedAt('sections', rs.id, rs.updated_at)
           }
         } else {
-          // Proyecto existe — revisar si Supabase tiene secciones más nuevas
+          // Proyecto existe — revisar si Supabase tiene secciones más nuevas.
+          // También se completa si el proyecto quedó sin ninguna sección local
+          // (por ejemplo, porque sus secciones se crearon en el teléfono).
           const localProject = localProjects.find(p => p.id === rp.id)
-          if (rp.updated_at > localProject.updated_at) {
+          const filasLocales = await db.query(
+            `SELECT COUNT(*) as n FROM sections WHERE project_id = ?`,
+            [rp.id]
+          )
+          const sinSeccionesLocales = (filasLocales?.[0]?.n ?? 0) === 0
+          if (sinSeccionesLocales || rp.updated_at > localProject.updated_at) {
             const { data: remoteSections } = await supabase
               .from('lw_secciones')
               .select('*')

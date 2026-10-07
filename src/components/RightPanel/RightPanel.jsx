@@ -18,7 +18,7 @@ const RightPanel = ({ projectType, section, wordCount, project, projectStyle, on
       {(projectType === "book" || projectType === "libro") && (
         <BookPanel section={section} project={project} projectStyle={projectStyle} onSectionUpdate={onSectionUpdate} onStyleChange={onStyleChange} onResourceChange={onResourceChange} collapsed={collapsed} />
       )}
-      {(projectType === "teaching" || projectType === "ensenanza") && (
+      {(projectType === "teaching" || projectType === "ensenanza" || projectType === "academia") && (
         <TeachingPanel section={section} project={project} onResourceChange={onResourceChange} collapsed={collapsed} />
       )}
       {(projectType === "devotional" || projectType === "devocional") && (

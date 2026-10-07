@@ -9,6 +9,7 @@ const typeLabels = {
   estudio: "Estudio Bíblico",
   sermon: "Sermón",
   video: "Video",
+  academia: "Academia",
 };
 
 const typeIcons = {
@@ -18,6 +19,7 @@ const typeIcons = {
   estudio: "🔍",
   sermon: "🎙️",
   video: "🎬",
+  academia: "🎓",
 };
 
 const typeColors = {
@@ -56,6 +58,12 @@ const typeColors = {
     bg: "bg-purple-50",
     ring: "ring-purple-400",
     selectedBg: "bg-purple-50 border-purple-500",
+  },
+  academia: {
+    border: "border-yellow-400",
+    bg: "bg-yellow-50",
+    ring: "ring-yellow-400",
+    selectedBg: "bg-yellow-50 border-yellow-500",
   },
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
-  BookOpen, GraduationCap, Heart, Mic, Video, Search, Sparkles,
+  BookOpen, BookMarked, GraduationCap, Heart, Mic, Video, Search, Sparkles,
   Clock, ArrowRight
 } from 'lucide-react'
 import { projectService } from '../../services/projectService'
@@ -27,6 +27,13 @@ const projectTypes = [
     description: 'Reflexión diaria',
     icon: Heart,
     bg: 'bg-gradient-to-br from-devocional/90 to-devocional/60',
+  },
+  {
+    id: 'academia',
+    title: 'Academia',
+    description: 'Serie completa para un curso',
+    icon: BookMarked,
+    bg: 'bg-gradient-to-br from-[#8A6D1F] to-[#C9A24A]',
   },
   {
     id: 'estudio',
@@ -117,7 +124,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
 
   /* ─── Helper: normalizar tipo para íconos ─── */
   const normalizeTypeId = (type) => {
-    const map = { libro: 'book', ensenanza: 'teaching', devocional: 'devotional', devotional: 'devotional', estudio: 'estudio', study: 'estudio' }
+    const map = { libro: 'book', ensenanza: 'teaching', devocional: 'devotional', devotional: 'devotional', estudio: 'estudio', study: 'estudio', academia: 'academia' }
     return map[type] || type
   }
 
@@ -131,6 +138,7 @@ const Home = ({ onSelectType, onOpenProject, onOpenSection, onNavigate }) => {
       book: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',
       teaching: 'bg-gradient-to-br from-brand-gold-deep to-brand-gold',
       devotional: 'bg-gradient-to-br from-devocional/90 to-devocional/60',
+      academia: 'bg-gradient-to-br from-[#8A6D1F] to-[#C9A24A]',
       estudio: 'bg-gradient-to-br from-brand-ink-2 to-brand-ink',
       sermon: 'bg-gradient-to-br from-brand-gold-deep/80 to-brand-gold-deep',
       video: 'bg-gradient-to-br from-brand-teal to-brand-teal-mid',

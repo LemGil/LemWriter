@@ -3,6 +3,7 @@ export const TEMPLATE_TYPES = {
   TEACHING: 'teaching',
   DEVOCIONAL: 'devotional',
   STUDY: 'study',
+  ACADEMIA: 'academia',
 }
 
 export const templates = {
@@ -300,6 +301,41 @@ export const templates = {
         video_corto: '<h3>Hook</h3><p></p><h3>Idea Central</h3><p></p><h3>Desarrollo</h3><p></p><h3>Cierre</h3><p></p><h3>Texto en Pantalla</h3><p></p>'
       }
     }
+  },
+  academia: {
+    'academia-basic': {
+      name: 'Academia',
+      description: 'Serie completa para un curso de la Academia: introducción y temas en orden',
+      icon: '🎓',
+      projectType: 'academia',
+      structure: [
+        { type: 'introduccion', title: 'Introducción', required: true },
+        { type: 'tema', title: 'Tema 1', required: true },
+      ],
+      defaultContent: {
+        introduccion: '<h3>Introducción</h3><p></p>',
+        tema: '<h3>Tema</h3><p></p>',
+      },
+      designTokens: {
+        fontSize: '18px',
+        lineHeight: '1.8',
+        fontFamily: "'EB Garamond', serif",
+        margins: { top: '2cm', bottom: '2cm', left: '2.5cm', right: '2.5cm' },
+        headingFont: "'Inter', sans-serif",
+        headingWeight: '600',
+        pageWidth: '6in',
+        pageHeight: '9in',
+      },
+      smartRules: {
+        maxWords: 4000,
+        minWords: 100,
+      },
+      panelConfig: {
+        tabs: ['references', 'notes'],
+        showWordCount: true,
+        showReadingTime: true,
+      },
+    },
   },
   study: {
     'study-basic': {

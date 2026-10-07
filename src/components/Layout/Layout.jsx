@@ -4,7 +4,7 @@ import ThemeToggle from './ThemeToggle'
 import { backupService } from '../../services/backupService'
 import useAppStore from '../../stores/appStore'
 
-const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount, charCount, projectType, onSave, onRename, onExport, theme, onThemeChange }) => {
+const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount, charCount, projectType, onSave, onRename, onExport, theme, onThemeChange, onPublicarAcademia, estadoPublicacion }) => {
   const readingTime = Math.max(1, Math.ceil(wordCount / 200))
   const [saved, setSaved] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -128,6 +128,24 @@ const Layout = ({ sidebar, editor, rightPanel, toolbar, title, onBack, wordCount
             <button onClick={toggleRight} className="p-1 theme-hover rounded shrink-0 theme-text-secondary" title={isRightCollapsed ? 'Expandir panel derecho' : 'Colapsar panel derecho'}>
               {isRightCollapsed ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
             </button>
+            {onPublicarAcademia && (
+              <>
+                <button
+                  onClick={onPublicarAcademia}
+                  className="text-sm px-3 py-1 rounded flex items-center gap-1 font-sans font-semibold text-[#5C4408] bg-gradient-to-b from-[#E9CE7A] to-[#C9A24A] border border-[#A8821F] hover:brightness-105"
+                  title="Publicar este proyecto como curso en la Academia del Espíritu"
+                >
+                  🎓 Publicar en Academia
+                </button>
+                {estadoPublicacion && (
+                  <span className="text-[10px] font-sans theme-text-secondary whitespace-nowrap">
+                    {estadoPublicacion.publicado
+                      ? `🎓 Publicado${estadoPublicacion.fecha ? ` · ${new Date(estadoPublicacion.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
+                      : 'Sin publicar'}
+                  </span>
+                )}
+              </>
+            )}
             <button
               onClick={onExport}
                className="text-sm px-3 py-1 theme-bg-secondary hover:bg-brand-gold-pale rounded flex items-center gap-1 font-sans"

@@ -4,5 +4,6 @@ export const STYLES_BY_TYPE = {
   devocional: 'devocional_calido',
   estudio: 'estudio_predeterminado',
   sermon: 'sermon_expositivo',
-  video: 'video_dinamico'
+  video: 'video_dinamico',
+  academia: 'libro_ensenanza'
 }

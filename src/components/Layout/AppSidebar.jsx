@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronDown,
   Book,
+  BookMarked,
   GraduationCap,
   Heart,
   Search,
@@ -35,6 +36,7 @@ const typeIcons = {
   study: Search,
   sermon: Mic,
   video: Video,
+  academia: BookMarked,
 }
 
 const typeColors = {
@@ -48,6 +50,7 @@ const typeColors = {
   study: 'text-brand-ink-2',
   sermon: 'text-brand-gold',
   video: 'text-brand-teal-mid',
+  academia: 'text-brand-gold-deep',
 }
 
 const typeBgs = {
@@ -61,6 +64,7 @@ const typeBgs = {
   study: 'bg-brand-cream',
   sermon: 'bg-brand-gold-shine',
   video: 'bg-brand-teal-pale',
+  academia: 'bg-brand-gold-pale',
 }
 
 const AppSidebar = ({ vistaActiva, onNavigate, collapsed, onToggle, recentProjects = [], onOpenProject }) => {
