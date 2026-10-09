@@ -12,6 +12,7 @@
 //     estudios/
 //     videos/
 //     libros/
+//     academia/
 
 const fs = require('fs');
 const path = require('path');
@@ -38,6 +39,7 @@ const OBSIDIAN_FOLDERS = [
   'estudios',
   'videos',
   'libros',
+  'academia',
   'otros',
 ];
 
@@ -87,6 +89,7 @@ const TYPE_TO_FOLDER = {
   estudio:     'estudios',
   video:       'videos',
   libro:       'libros',
+  academia:    'academia',
 };
 
 // Normaliza el tipo tal como viene de la BD (puede tener tildes u otras variantes)
@@ -100,6 +103,7 @@ function normalizeType(rawType) {
   if (t === 'estudio')                        return 'estudio';
   if (t === 'video')                          return 'video';
   if (t === 'libro')                          return 'libro';
+  if (t === 'academia')                       return 'academia';
   return null; // tipo desconocido — no exportar
 }
 

@@ -1,4 +1,5 @@
 // IPC handlers for app lifecycle and window state
+const { app } = require('electron');
 const logger = require('../logger');
 const { validate, SaveLastProjectSchema } = require('../schemas/ipc-schemas');
 
@@ -41,6 +42,10 @@ function register(ipcMain, deps) {
   ipcMain.handle('app:get-last-project', async () => {
     const state = windowState.loadState();
     return state.lastProjectId || null;
+  });
+
+  ipcMain.handle('app:get-version', () => {
+    return app.getVersion();
   });
 }
 

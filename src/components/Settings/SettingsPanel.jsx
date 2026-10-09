@@ -102,6 +102,7 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
   const [obsidianBusy, setObsidianBusy] = useState(false)
   const [projectTheme, setProjectTheme] = useState(null)
   const [customColors, setCustomColors] = useState(null)
+  const [appVersion, setAppVersion] = useState('')
   const [loading, setLoading] = useState(true)
   const saveTimer = useRef(null)
 
@@ -115,6 +116,10 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
           projectService.getCustomTheme(),
         ])
         setBackups(list || [])
+        if (window.api?.app?.getVersion) {
+          const v = await window.api.app.getVersion()
+          if (v) setAppVersion(v)
+        }
         if (window.api?.obsidian) {
           const rp = await window.api.obsidian.getPath()
           if (rp.success) setObsidianPath(rp.path)
@@ -542,7 +547,7 @@ const SettingsPanel = ({ theme, onThemeChange, projectId, isProjectOpen }) => {
             </div>
             <div>
               <p className="text-brand-ink-3">Versión</p>
-              <p className="text-brand-ink font-medium">1.0.0</p>
+              <p className="text-brand-ink font-medium">{appVersion || '—'}</p>
             </div>
             <div>
               <p className="text-brand-ink-3">Tema actual</p>

@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   app: {
     saveLastProject: (id) => ipcRenderer.invoke('app:save-last-project', id),
     getLastProject: () => ipcRenderer.invoke('app:get-last-project'),
+    getVersion: () => ipcRenderer.invoke('app:get-version'),
   },
   confirmSaveComplete: () => ipcRenderer.send('save-complete'),
   cancelClose: () => ipcRenderer.send('save-cancelled'),
