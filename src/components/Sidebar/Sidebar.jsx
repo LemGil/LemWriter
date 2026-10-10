@@ -31,6 +31,42 @@ const typeFilterOptions = [
 
 const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSection, onAddSection, onAddSectionFromTemplate, onRenameSection, onDeleteSection, onReorderSection, projectTitle, templateKey, onInsertResource, resourceRefreshKey }) => {
   const collapsed = useAppStore((s) => s.isLeftCollapsed)
+  const [mostrarCambioTipo, setMostrarCambioTipo] = useState(false)
+  const [aplicandoCambioTipo, setAplicandoCambioTipo] = useState(false)
+
+  const TIPOS_EDITOR = [
+    { db: 'estudio', label: 'Estudio Bíblico', icon: '🔍' },
+    { db: 'ensenanza', label: 'Enseñanza', icon: '📖' },
+    { db: 'sermon', label: 'Sermón', icon: '🎙️' },
+    { db: 'video', label: 'Video', icon: '🎬' },
+    { db: 'devocional', label: 'Devocional', icon: '🙏' },
+    { db: 'academia', label: 'Academia', icon: '🎓' },
+    { db: 'libro', label: 'Libro', icon: '📚' },
+  ]
+
+  const aplicarCambioTipoEditor = async (nuevoDb) => {
+    if (!projectId || aplicandoCambioTipo || nuevoDb === projectType) {
+      setMostrarCambioTipo(false)
+      return
+    }
+    setAplicandoCambioTipo(true)
+    try {
+      await projectService.cambiarTipoProyecto(projectId, nuevoDb, projectType)
+      const full = await projectService.getProject(projectId)
+      if (full) {
+        const seccionActiva = useAppStore.getState().activeSection
+        useAppStore.getState().setProjectData(full)
+        if (full.sections?.some(s => s.id === seccionActiva)) {
+          useAppStore.setState({ activeSection: seccionActiva })
+        }
+      }
+      setMostrarCambioTipo(false)
+    } catch {
+      // silencio
+    } finally {
+      setAplicandoCambioTipo(false)
+    }
+  }
   const [activeTab, setActiveTab] = useState('structure')
   const [resources, setResources] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -213,7 +249,12 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
               <p className={`text-xs font-semibold uppercase tracking-wide ${typeInfo.color}`}>
                 {typeInfo.label}
               </p>
-              <p className="text-sm font-medium theme-text truncate">{projectTitle}</p>
+              <button
+                onClick={() => setMostrarCambioTipo(true)}
+                className="mt-0.5 text-[10px] font-sans text-brand-ink-3 underline decoration-dotted hover:text-brand-ink"
+              >
+                ⇄ Cambiar tipo
+              </button>
               {template && (
                 <p className="text-[10px] text-brand-ink-3 truncate font-sans">{template.name}</p>
               )}
@@ -608,6 +649,44 @@ const Sidebar = ({ projectType, projectId, sections, activeSection, onSelectSect
           </>
         )}
       </div>
+      {mostrarCambioTipo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !aplicandoCambioTipo && setMostrarCambioTipo(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-serif text-lg text-brand-ink mb-1">Cambiar tipo de proyecto</h3>
+            <p className="text-xs text-brand-ink-3 font-sans mb-4">«{projectTitle}» se mueve a otro tipo, con todas sus secciones.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TIPOS_EDITOR.map((t) => {
+                const activo = projectType === t.db
+                return (
+                  <button
+                    key={t.db}
+                    disabled={aplicandoCambioTipo}
+                    onClick={() => aplicarCambioTipoEditor(t.db)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left font-sans text-sm transition-colors ${activo ? 'border-brand-gold bg-yellow-50 text-brand-ink' : 'border-gray-200 hover:border-brand-gold/60 text-brand-ink-2'}`}
+                  >
+                    <span>{t.icon}</span>
+                    <span>{t.label}</span>
+                    {activo && <span className="ml-auto text-[10px] text-brand-ink-3">actual</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {projectType !== 'academia' && (
+              <p className="text-[11px] text-brand-ink-3 font-sans mt-3">Si lo pasás a Academia, sus secciones se convierten en temas del curso.</p>
+            )}
+            {projectType === 'academia' && (
+              <p className="text-[11px] text-brand-ink-3 font-sans mt-3">Al salir de Academia, las secciones dejan de ser temas (el curso publicado en la Academia no se borra).</p>
+            )}
+            <button
+              onClick={() => setMostrarCambioTipo(false)}
+              disabled={aplicandoCambioTipo}
+              className="mt-4 w-full py-2 rounded-lg border border-gray-200 text-sm font-sans text-brand-ink-2 hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

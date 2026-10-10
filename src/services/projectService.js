@@ -249,6 +249,20 @@ export const projectService = {
     }
   },
 
+  async cambiarTipoProyecto(id, nuevoTipo, tipoAnterior) {
+    const db = getDb();
+    const ahora = new Date().toISOString();
+    await db.execute(`UPDATE projects SET type = ?, updated_at = ? WHERE id = ?`, [nuevoTipo, ahora, id]);
+    if (nuevoTipo === 'academia') {
+      await db.execute(`UPDATE sections SET type = 'tema', updated_at = ? WHERE project_id = ?`, [ahora, id]);
+    } else if (tipoAnterior === 'academia') {
+      await db.execute(
+        `UPDATE sections SET type = 'capitulo', updated_at = ? WHERE project_id = ? AND type = 'tema'`,
+        [ahora, id]
+      );
+    }
+  },
+
   async getCharacters(projectId) {
     const db = getDb();
     return await db.query(`SELECT * FROM characters WHERE project_id = ?`, [projectId]);

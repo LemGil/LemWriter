@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { BookOpen, BookMarked, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Trash2, ExternalLink, Clock } from 'lucide-react'
+import { BookOpen, BookMarked, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Repeat, Trash2, ExternalLink, Clock } from 'lucide-react'
 import { projectService } from '../../services/projectService'
 import { cargarEstadosPublicacion } from '../../services/publicarAcademia'
 import BackupButton from '../Home/BackupButton'
@@ -128,24 +128,28 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
   const [typeFilter, setTypeFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [projectStats, setProjectStats] = useState({})
+  const [cambioTipo, setCambioTipo] = useState(null)
+  const [aplicandoTipo, setAplicandoTipo] = useState(false)
+  const [cambiosTipo, setCambiosTipo] = useState({})
+  const proyectos = recentProjects.map(p => (cambiosTipo[p.id] ? { ...p, type: cambiosTipo[p.id] } : p))
   const searchTimer = useRef(null)
 
   useEffect(() => {
     const fetchStats = async () => {
       const stats = {}
-      for (const project of recentProjects) {
+      for (const project of proyectos) {
         const fullProject = await projectService.getProject(project.id)
         stats[project.id] = fullProject
       }
       setProjectStats(stats)
     }
     fetchStats()
-  }, [recentProjects])
+  }, [proyectos])
 
   const [estadosPublicacion, setEstadosPublicacion] = useState({})
 
   useEffect(() => {
-    const idsAcademia = recentProjects
+    const idsAcademia = proyectos
       .filter(p => normalizeTypeId(p.type) === 'academia')
       .map(p => p.id)
     if (idsAcademia.length === 0) return
@@ -154,22 +158,45 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
       .then(mapa => { if (vivo) setEstadosPublicacion(mapa) })
       .catch(() => {})
     return () => { vivo = false }
-  }, [recentProjects])
+  }, [proyectos])
+
+  const aplicarCambioTipo = async (uiTipo) => {
+    if (!cambioTipo || aplicandoTipo) return
+    const nuevoDb = dbTypeMap[uiTipo] || uiTipo
+    if (normalizeTypeId(cambioTipo.type) === uiTipo) {
+      setCambioTipo(null)
+      return
+    }
+    setAplicandoTipo(true)
+    try {
+      await projectService.cambiarTipoProyecto(cambioTipo.id, nuevoDb, cambioTipo.type)
+      setCambiosTipo(prev => ({ ...prev, [cambioTipo.id]: nuevoDb }))
+      setProjectStats(prev => ({
+        ...prev,
+        [cambioTipo.id]: { ...(prev[cambioTipo.id] || cambioTipo), type: nuevoDb },
+      }))
+      setCambioTipo(null)
+    } catch {
+      // silencio
+    } finally {
+      setAplicandoTipo(false)
+    }
+  }
 
   const tabs = [
-    { id: 'all', label: 'Todos', count: recentProjects.length },
-    { id: 'book', label: 'Libros', icon: BookOpen, count: recentProjects.filter(p => p.type === 'libro' || p.type === 'book').length },
-    { id: 'teaching', label: 'Enseñanzas', icon: GraduationCap, count: recentProjects.filter(p => p.type === 'ensenanza' || p.type === 'teaching').length },
-    { id: 'devotional', label: 'Devocionales', icon: Heart, count: recentProjects.filter(p => p.type === 'devocional' || p.type === 'devotional').length },
-    { id: 'academia', label: 'Academias', icon: BookMarked, count: recentProjects.filter(p => p.type === 'academia').length },
-    { id: 'estudio', label: 'Estudios', icon: Search, count: recentProjects.filter(p => p.type === 'estudio' || p.type === 'study').length },
-    { id: 'sermon', label: 'Sermones', icon: Mic, count: recentProjects.filter(p => p.type === 'sermon').length },
-    { id: 'video', label: 'Videos', icon: Video, count: recentProjects.filter(p => p.type === 'video').length },
+    { id: 'all', label: 'Todos', count: proyectos.length },
+    { id: 'book', label: 'Libros', icon: BookOpen, count: proyectos.filter(p => p.type === 'libro' || p.type === 'book').length },
+    { id: 'teaching', label: 'Enseñanzas', icon: GraduationCap, count: proyectos.filter(p => p.type === 'ensenanza' || p.type === 'teaching').length },
+    { id: 'devotional', label: 'Devocionales', icon: Heart, count: proyectos.filter(p => p.type === 'devocional' || p.type === 'devotional').length },
+    { id: 'academia', label: 'Academias', icon: BookMarked, count: proyectos.filter(p => p.type === 'academia').length },
+    { id: 'estudio', label: 'Estudios', icon: Search, count: proyectos.filter(p => p.type === 'estudio' || p.type === 'study').length },
+    { id: 'sermon', label: 'Sermones', icon: Mic, count: proyectos.filter(p => p.type === 'sermon').length },
+    { id: 'video', label: 'Videos', icon: Video, count: proyectos.filter(p => p.type === 'video').length },
   ]
 
   const filteredProjects = typeFilter === 'all'
-    ? recentProjects
-    : recentProjects.filter(p => p.type === dbTypeMap[typeFilter] || p.type === typeFilter)
+    ? proyectos
+    : proyectos.filter(p => p.type === dbTypeMap[typeFilter] || p.type === typeFilter)
 
   const searchFiltered = searchQuery.trim()
     ? filteredProjects.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -319,6 +346,16 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+                          setCambioTipo(project)
+                        }}
+                        className="p-1 text-brand-ink-3 hover:text-brand-ink hover:bg-gray-100 rounded transition-colors"
+                        title="Cambiar tipo de proyecto"
+                      >
+                        <Repeat size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
                           if (confirm('¿Eliminar este proyecto?')) {
                             onDeleteProject(project.id)
                           }
@@ -369,6 +406,45 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
 
         </div>
       </div>
+      {cambioTipo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !aplicandoTipo && setCambioTipo(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-serif text-lg text-brand-ink mb-1">Cambiar tipo de proyecto</h3>
+            <p className="text-xs text-brand-ink-3 font-sans mb-4">«{cambioTipo.title}» se mueve a otro tipo, con todas sus secciones.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {projectTypes.map((t) => {
+                const activo = normalizeTypeId(cambioTipo.type) === t.id
+                const Icono = t.icon
+                return (
+                  <button
+                    key={t.id}
+                    disabled={aplicandoTipo}
+                    onClick={() => aplicarCambioTipo(t.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left font-sans text-sm transition-colors ${activo ? 'border-brand-gold bg-yellow-50 text-brand-ink' : 'border-gray-200 hover:border-brand-gold/60 text-brand-ink-2'}`}
+                  >
+                    <Icono size={16} />
+                    <span>{t.title}</span>
+                    {activo && <span className="ml-auto text-[10px] text-brand-ink-3">actual</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {normalizeTypeId(cambioTipo.type) !== 'academia' && (
+              <p className="text-[11px] text-brand-ink-3 font-sans mt-3">Si lo pasás a Academia, sus secciones se convierten en temas del curso.</p>
+            )}
+            {normalizeTypeId(cambioTipo.type) === 'academia' && (
+              <p className="text-[11px] text-brand-ink-3 font-sans mt-3">Al salir de Academia, las secciones dejan de ser temas (el curso publicado en la Academia no se borra).</p>
+            )}
+            <button
+              onClick={() => setCambioTipo(null)}
+              disabled={aplicandoTipo}
+              className="mt-4 w-full py-2 rounded-lg border border-gray-200 text-sm font-sans text-brand-ink-2 hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
