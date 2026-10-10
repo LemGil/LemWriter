@@ -123,13 +123,27 @@ function App() {
           await projectService.migrateFromLocalStorage();
         }
         store.setRecentProjects(await projectService.getRecentProjects());
-        // Pull desde Supabase al arrancar
+        // Respaldos al arrancar: van ANTES de la sincronización, para
+        // que una red lenta o caída no los deje esperando.
+        backupService.createBackup().catch(() => {});
+        autoBackupService.checkAndRunAutoBackup().catch(() => {});
+        // Pull desde Supabase al arrancar (con su propio try y límite
+        // de 15 s: si la red no responde, la app sigue sin él)
         if (isSupabaseEnabled()) {
-          const db = window.api.db;
-          const { pulled } = await syncService.pullFromCloud(db);
-          if (pulled > 0) {
-            store.setRecentProjects(await projectService.getRecentProjects());
-            console.log(`[sync]  proyectos descargados desde la nube`);
+          try {
+            const db = window.api.db;
+            const pullPromise = syncService.pullFromCloud(db);
+            pullPromise.catch(() => {});
+            const { pulled } = await Promise.race([
+              pullPromise,
+              new Promise((resolve) => setTimeout(() => resolve({ pulled: 0 }), 15000)),
+            ]);
+            if (pulled > 0) {
+              store.setRecentProjects(await projectService.getRecentProjects());
+              console.log(`[sync]  proyectos descargados desde la nube`);
+            }
+          } catch (err) {
+            console.warn('[sync] Pull al arrancar falló:', err?.message || err);
           }
         }
         backupService.createBackup().catch(() => {});

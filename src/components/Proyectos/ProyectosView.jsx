@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { BookOpen, BookMarked, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Repeat, Trash2, ExternalLink, Clock } from 'lucide-react'
+import { BookOpen, BookMarked, GraduationCap, Heart, Search, Mic, Video, FileText, Sparkles, Repeat, Trash2, ExternalLink, Clock, LayoutGrid, List } from 'lucide-react'
 import { projectService } from '../../services/projectService'
 import { cargarEstadosPublicacion } from '../../services/publicarAcademia'
 import BackupButton from '../Home/BackupButton'
@@ -128,6 +128,13 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
   const [typeFilter, setTypeFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [projectStats, setProjectStats] = useState({})
+  const [vista, setVista] = useState(() => {
+    try { return localStorage.getItem('lw_vista_proyectos') || 'cuadricula' } catch { return 'cuadricula' }
+  })
+  const cambiarVista = (v) => {
+    setVista(v)
+    try { localStorage.setItem('lw_vista_proyectos', v) } catch {}
+  }
   const [cambioTipo, setCambioTipo] = useState(null)
   const [aplicandoTipo, setAplicandoTipo] = useState(false)
   const [cambiosTipo, setCambiosTipo] = useState({})
@@ -144,7 +151,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
       setProjectStats(stats)
     }
     fetchStats()
-  }, [proyectos])
+  }, [recentProjects])
 
   const [estadosPublicacion, setEstadosPublicacion] = useState({})
 
@@ -158,7 +165,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
       .then(mapa => { if (vivo) setEstadosPublicacion(mapa) })
       .catch(() => {})
     return () => { vivo = false }
-  }, [proyectos])
+  }, [recentProjects])
 
   const aplicarCambioTipo = async (uiTipo) => {
     if (!cambioTipo || aplicandoTipo) return
@@ -319,9 +326,80 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
           </div>
 
           {/* Lista de proyectos */}
+          <div className="flex items-center justify-end gap-1 mb-2">
+            <span className="text-[10px] font-sans text-brand-ink-3 mr-1">Vista:</span>
+            <button
+              onClick={() => cambiarVista('cuadricula')}
+              className={`p-1.5 rounded transition-colors ${vista === 'cuadricula' ? 'bg-brand-gold-pale text-brand-ink' : 'text-brand-ink-3 hover:bg-gray-100'}`}
+              title="Vista en cuadrícula"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              onClick={() => cambiarVista('lista')}
+              className={`p-1.5 rounded transition-colors ${vista === 'lista' ? 'bg-brand-gold-pale text-brand-ink' : 'text-brand-ink-3 hover:bg-gray-100'}`}
+              title="Vista en lista"
+            >
+              <List size={14} />
+            </button>
+          </div>
           {searchFiltered.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {searchFiltered.map(project => (
+            <div className={vista === 'lista' ? 'flex flex-col gap-2' : 'grid grid-cols-1 md:grid-cols-2 gap-2'}>
+              {searchFiltered.map(project => vista === 'lista' ? (
+                <div
+                  key={project.id}
+                  onClick={() => onOpenProject(project)}
+                  className="theme-card rounded-xl border border-brand-gold/20 px-3 py-2 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-3"
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-white ${getTypeColor(project.type)}`}>
+                    {getTypeIcon(project.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-brand-ink text-sm truncate font-serif">{project.title}</h4>
+                    <div className="flex items-center gap-3 text-[10px] text-brand-ink-3 font-sans">
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {formatDate(project.updated_at)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText size={10} />
+                        {(projectStats[project.id]?.sections || project.sections || []).length} secciones
+                      </span>
+                      {normalizeTypeId(project.type) === 'academia' && estadosPublicacion[project.id] && (
+                        <span className={`inline-block text-[10px] font-sans px-1.5 py-0.5 rounded-full border ${estadosPublicacion[project.id].publicado ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                          {estadosPublicacion[project.id].publicado
+                            ? `🎓 Publicado${estadosPublicacion[project.id].fecha ? ` · ${formatFechaCorta(estadosPublicacion[project.id].fecha)}` : ''}`
+                            : 'Sin publicar'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCambioTipo(project)
+                      }}
+                      className="p-1 text-brand-ink-3 hover:text-brand-ink hover:bg-gray-100 rounded transition-colors"
+                      title="Cambiar tipo de proyecto"
+                    >
+                      <Repeat size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm('¿Eliminar este proyecto?')) {
+                          onDeleteProject(project.id)
+                        }
+                      }}
+                      className="p-1 text-brand-ink-3 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Eliminar proyecto"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <div
                   key={project.id}
                   className="theme-card rounded-xl border border-brand-gold/20 p-3 hover:shadow-md transition-shadow group"
@@ -374,7 +452,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
                     </span>
                     <span className="flex items-center gap-1">
                       <FileText size={10} />
-                      {(project.sections || []).length} secciones
+                      {(projectStats[project.id]?.sections || project.sections || []).length} secciones
                     </span>
                   </div>
                   {normalizeTypeId(project.type) === 'academia' && estadosPublicacion[project.id] && (

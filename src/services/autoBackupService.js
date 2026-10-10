@@ -49,13 +49,20 @@ async function checkAndRunAutoBackup() {
       return { success: false, error: localResult?.error || 'backup local falló' }
     }
 
-    // 2. Subir a la nube
-    const filename = `auto-${new Date().toISOString().split('T')[0]}.db`
-    const cloudResult = await cloudBackupService.uploadBackup(localResult.path, filename)
-
-    // 3. Actualizar configuración
+    // 2. Registrar la fecha apenas el respaldo local quedó hecho:
+    //    aunque la subida a la nube falle, el automático no pierde
+    //    la fecha ni se reintenta en cada arranque.
     config.lastBackup = new Date().toISOString()
     saveConfig(config)
+
+    // 3. Subir a la nube
+    const filename = `auto-${new Date().toISOString().split('T')[0]}.db`
+    let cloudResult
+    try {
+      cloudResult = await cloudBackupService.uploadBackup(localResult.path, filename)
+    } catch (err) {
+      cloudResult = { success: false, error: err.message }
+    }
 
     console.log(`[LemWriter] Backup automático: ${cloudResult.success ? 'completado' : 'fallo en nube (' + cloudResult.error + ')'} (local: ${localResult.path})`)
     return { success: true, local: localResult, cloud: cloudResult }

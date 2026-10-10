@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { cloudBackupService } from '../services/cloudBackupService'
 import { autoBackupService } from '../services/autoBackupService'
-import { isSupabaseEnabled } from '../services/supabaseClient'
+import { isSupabaseEnabled, guardarConfigSupabase, borrarConfigSupabase } from '../services/supabaseClient'
 
 export default function BackupPanel() {
   const [cloudBackups, setCloudBackups] = useState([])
@@ -9,6 +9,21 @@ export default function BackupPanel() {
   const [message, setMessage] = useState(null)
   const [autoConfig, setAutoConfig] = useState(autoBackupService.getConfig())
   const [online, setOnline] = useState(isSupabaseEnabled())
+  const [urlSupabase, setUrlSupabase] = useState('')
+  const [claveSupabase, setClaveSupabase] = useState('')
+
+  const conectarSupabase = () => {
+    const url = urlSupabase.trim()
+    const clave = claveSupabase.trim()
+    if (!url || !clave) return
+    guardarConfigSupabase(url, clave)
+    window.location.reload()
+  }
+
+  const desconectarSupabase = () => {
+    borrarConfigSupabase()
+    window.location.reload()
+  }
 
   useEffect(() => {
     if (online) refreshCloudBackups()
@@ -112,16 +127,31 @@ export default function BackupPanel() {
 
   if (!online) {
     return (
-      <div className="p-6 text-gray-500">
-        <h3 className="text-lg font-semibold mb-2">Respaldo en la Nube</h3>
-        <p>Conecta Supabase en <code>.env.local</code> para activar respaldos en la nube.</p>
+      <div className="p-6 space-y-4">
+        <h3 className="text-lg font-semibold">Respaldo en la Nube</h3>
+        <p className="text-sm text-gray-500">Para activar los respaldos en la nube y el respaldo automático diario, conectá Supabase. La dirección y la clave anónima están en tu proyecto de Supabase &gt; Settings &gt; API.</p>
+        <div>
+          <label className="block text-xs font-sans text-gray-500 mb-1">Dirección del proyecto (URL)</label>
+          <input value={urlSupabase} onChange={(e) => setUrlSupabase(e.target.value)} placeholder="https://xxxx.supabase.co" className="w-full border rounded-lg px-3 py-2 text-sm font-sans" />
+        </div>
+        <div>
+          <label className="block text-xs font-sans text-gray-500 mb-1">Clave anónima (anon key)</label>
+          <input value={claveSupabase} onChange={(e) => setClaveSupabase(e.target.value)} placeholder="eyJ..." className="w-full border rounded-lg px-3 py-2 text-sm font-sans" />
+        </div>
+        <button onClick={conectarSupabase} disabled={!urlSupabase.trim() || !claveSupabase.trim()} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition text-sm">
+          Conectar Supabase
+        </button>
+        <p className="text-[11px] text-gray-400 font-sans">Se guarda en esta computadora y la app se reinicia. Es la clave pública (anon) de tu proyecto.</p>
       </div>
     )
   }
 
   return (
     <div className="p-6 space-y-6">
-      <h3 className="text-lg font-semibold">Respaldo en la Nube</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Respaldo en la Nube</h3>
+        <button onClick={desconectarSupabase} className="text-xs text-gray-400 hover:text-red-500 font-sans">Desconectar</button>
+      </div>
 
       {/* Auto-backup toggle */}
       <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-3 rounded">
