@@ -84,8 +84,26 @@ export const projectService = {
   async getRecentProjects() {
     const db = getDb();
     return await db.query(
-      `SELECT * FROM projects ORDER BY updated_at DESC`,
+      `SELECT p.*, (SELECT COUNT(*) FROM sections s WHERE s.project_id = p.id) AS section_count
+       FROM projects p ORDER BY p.updated_at DESC`,
     );
+  },
+
+  // Estadisticas livianas para la lista de proyectos: una sola consulta
+  // con el contenido de las secciones, sin abrir cada proyecto completo.
+  // Devuelve { [projectId]: { sectionCount, words } } con el mismo
+  // conteo de palabras que usaba la vista (texto sin HTML, por espacios).
+  async getProjectListStats() {
+    const db = getDb();
+    const rows = await db.query(`SELECT project_id, content FROM sections`);
+    const stats = {};
+    for (const r of rows || []) {
+      const s = stats[r.project_id] || (stats[r.project_id] = { sectionCount: 0, words: 0 });
+      s.sectionCount += 1;
+      const text = (r.content || '').replace(/<[^>]*>/g, '');
+      if (text.trim() !== '') s.words += text.trim().split(/\s+/).length;
+    }
+    return stats;
   },
 
   async getAllProjects() {

@@ -143,11 +143,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
 
   useEffect(() => {
     const fetchStats = async () => {
-      const stats = {}
-      for (const project of proyectos) {
-        const fullProject = await projectService.getProject(project.id)
-        stats[project.id] = fullProject
-      }
+      const stats = await projectService.getProjectListStats()
       setProjectStats(stats)
     }
     fetchStats()
@@ -209,21 +205,17 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
     ? filteredProjects.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : filteredProjects
 
-  const statsProjects = searchFiltered.map(p => projectStats[p.id] || p)
+  const statsProjects = searchFiltered
 
   const totalWords = (projects) => {
-    return projects.reduce((sum, p) => {
-      const sections = p.sections || []
-      const words = sections.reduce((s, sec) => {
-        const text = (sec.content || '').replace(/<[^>]*>/g, '')
-        return s + (text.trim() === '' ? 0 : text.trim().split(/\s+/).length)
-      }, 0)
-      return sum + words
-    }, 0)
+    return projects.reduce((sum, p) => sum + (projectStats[p.id]?.words ?? 0), 0)
   }
 
   const totalSections = (projects) => {
-    return projects.reduce((sum, p) => sum + (p.sections || []).length, 0)
+    return projects.reduce(
+      (sum, p) => sum + (projectStats[p.id]?.sectionCount ?? p.section_count ?? (p.sections || []).length),
+      0,
+    )
   }
 
   return (
@@ -363,7 +355,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText size={10} />
-                        {(projectStats[project.id]?.sections || project.sections || []).length} secciones
+                        {(projectStats[project.id]?.sectionCount ?? project.section_count ?? (project.sections || []).length)} secciones
                       </span>
                       {normalizeTypeId(project.type) === 'academia' && estadosPublicacion[project.id] && (
                         <span className={`inline-block text-[10px] font-sans px-1.5 py-0.5 rounded-full border ${estadosPublicacion[project.id].publicado ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
@@ -452,7 +444,7 @@ const ProyectosView = ({ recentProjects = [], onSelectType, onOpenProject, onDel
                     </span>
                     <span className="flex items-center gap-1">
                       <FileText size={10} />
-                      {(projectStats[project.id]?.sections || project.sections || []).length} secciones
+                      {(projectStats[project.id]?.sectionCount ?? project.section_count ?? (project.sections || []).length)} secciones
                     </span>
                   </div>
                   {normalizeTypeId(project.type) === 'academia' && estadosPublicacion[project.id] && (

@@ -162,10 +162,10 @@ export async function publicarProyectoEnAcademia(proyecto, secciones, nivelId) {
   if (previo) {
     const { error } = await sb
       .from('cursos')
-      .update({ titulo: proyecto.title, nivel_id: nivelId, updated_at: ahora })
+      .update({ titulo: proyecto.titulo ?? proyecto.title, nivel_id: nivelId, updated_at: ahora })
       .eq('id', previo.id)
     if (error) {
-      throw new Error('No pude actualizar el curso en la Academia. ¿Tu usuario tiene rol de administrador?')
+      throw new Error(`No pude actualizar el curso en la Academia. Detalle: ${error.message}`)
     }
     cursoId = previo.id
   } else {
@@ -178,11 +178,11 @@ export async function publicarProyectoEnAcademia(proyecto, secciones, nivelId) {
     const orden = niveles && niveles.length > 0 ? (niveles[0].orden ?? 0) + 1 : 0
     const { data, error } = await sb
       .from('cursos')
-      .insert({ titulo: proyecto.title, nivel_id: nivelId, orden, lemwriter_id: proyecto.id })
+      .insert({ titulo: proyecto.titulo ?? proyecto.title, nivel_id: nivelId, orden, lemwriter_id: proyecto.id })
       .select('id')
       .single()
     if (error || !data) {
-      throw new Error('No pude crear el curso en la Academia. ¿Tu usuario tiene rol de administrador?')
+      throw new Error(`No pude crear el curso en la Academia. Detalle: ${error?.message ?? 'sin respuesta del servidor'}`)
     }
     cursoId = data.id
   }
